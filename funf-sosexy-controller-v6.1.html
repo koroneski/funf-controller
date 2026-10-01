@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0d12">
+<title>FUNF / SOSEXY Controller v6.1</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0b0d12;--card:#151922;--card2:#10141c;--line:#2a3140;
+  --text:#f4f6fa;--muted:#98a3b4;--accent:#77a8ff;--ok:#4dd59b;
+  --warn:#e4ad4d;--danger:#ff5d68;--red:#ff4757;--violet:#bd89ff
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}
+main{max-width:740px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(36px + env(safe-area-inset-bottom))}
+h1{font-size:23px;margin:4px 0 5px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+small,.small{font-size:12px;line-height:1.6;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;margin:13px 0}
+.card.wild{border-color:#60333b}
+.card.stop{border-color:#60343a}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:580px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:460px){.grid3,.grid2{grid-template-columns:1fr}}
+button{
+  border:0;border-radius:13px;padding:13px 12px;font-size:14px;font-weight:700;
+  color:#fff;background:#263149;touch-action:manipulation
+}
+button.primary{background:#2868d7;width:100%}
+button.wild{background:#a42d3d}
+button.danger{background:var(--danger)}
+button:disabled{opacity:.4}
+input[type=range]{width:100%;margin:15px 0 7px;accent-color:var(--accent)}
+input[type=number]{
+  width:100%;border:1px solid var(--line);border-radius:11px;background:#0c1017;
+  color:var(--text);font-size:16px;padding:10px
+}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.check{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#c7cfdb;margin:8px 0}
+.check input{margin-top:3px}
+.status{display:flex;align-items:center;gap:8px;margin:11px 0}
+.dot{width:10px;height:10px;border-radius:50%;background:#707783}
+.dot.on{background:var(--ok);box-shadow:0 0 11px var(--ok)}
+.dot.red{background:var(--red);box-shadow:0 0 14px var(--red)}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#242b38;color:#d2d8e2;font-size:11px}
+.pill.ok{background:#183a30;color:#9be7c7}
+.pill.red{background:#4c1f27;color:#ffb1ba}
+.value{min-width:50px;text-align:right;font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace}
+.bigtime{font:700 44px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;padding:12px 0}
+.log{
+  background:#090b0f;border-radius:11px;padding:11px;
+  font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#bcc6d7;
+  white-space:pre-wrap;max-height:275px;overflow:auto
+}
+.notice{border-left:3px solid var(--warn);padding-left:11px;color:#dbcaa7}
+.wildNotice{border-left:3px solid var(--red);padding-left:11px;color:#f0c0c6}
+.metric{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.metric b{display:block;font:700 18px ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:2px}
+hr{border:0;border-top:1px solid var(--line);margin:17px 0}
+.wildChoices{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:10px 0 4px
+}
+.wildChoice{
+  display:flex;align-items:center;gap:9px;background:#10141c;border:1px solid var(--line);
+  border-radius:13px;padding:12px 11px;font-size:14px;font-weight:700;cursor:pointer
+}
+.wildChoice input{width:20px;height:20px;accent-color:var(--red)}
+@media(max-width:460px){.wildChoices{grid-template-columns:1fr}}
+details{background:#10141c;border:1px solid var(--line);border-radius:13px;padding:12px;margin-top:12px}
+summary{cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<h1>FUNF / SOSEXY Controller v6.1</h1>
+<div class="small">通常3機能 + 本体内蔵の「失控モード」。PID 0004 の解析済み属性プロトコルを使用します。</div>
+
+<div class="card">
+  <div class="status"><span id="connDot" class="dot"></span><strong id="connStatus">未接続</strong></div>
+  <button id="connect" class="primary">Bluetooth 接続</button>
+  <div style="height:8px"></div>
+  <div class="grid3">
+    <div class="metric"><span class="small">バッテリー</span><b id="battery">-</b></div>
+    <div class="metric"><span class="small">失控状態</span><b id="wildState">停止</b></div>
+    <div class="metric"><span class="small">機能マスク</span><b id="maskState">-</b></div>
+  </div>
+  <div style="height:10px"></div>
+  <button id="queryStatus" style="width:100%" disabled>状態を更新</button>
+</div>
+
+<div class="card">
+  <div class="row">
+    <h2 style="margin:0">通常制御</h2>
+    <span class="pill ok">既存機能</span>
+  </div>
+
+  <h3>吸引</h3>
+  <div class="row"><span class="small">強度</span><span id="suctionValue" class="value">0</span></div>
+  <input id="suction" type="range" min="0" max="100" value="0" disabled>
+
+  <hr>
+
+  <h3>振動</h3>
+  <div class="row"><span class="small">強度</span><span id="vibrationValue" class="value">0</span></div>
+  <input id="vibration" type="range" min="0" max="100" value="0" disabled>
+
+  <hr>
+
+  <h3>微弱電流</h3>
+  <div class="row"><span class="small">強度</span><span id="electricValue" class="value">0</span></div>
+  <input id="electric" type="range" min="0" max="100" value="0" disabled>
+
+  <div style="height:8px"></div>
+  <label class="check">
+    <input id="normalKeepAlive" type="checkbox" checked>
+    通常機能が0以外の間は25秒ごとに現在値を再送する
+  </label>
+
+  <div class="notice small">
+    微弱電流を使用する場合は製品説明書の禁忌事項に従ってください。
+  </div>
+</div>
+
+<div class="card wild">
+  <div class="row">
+    <h2 style="margin:0">失控モード</h2>
+    <span class="pill red">本体側ランダム制御</span>
+  </div>
+
+  <div class="wildNotice small" style="margin-top:12px">
+    選択した機能を本体側の失控モードに渡し、本体自身にランダム制御させます。
+    開始後はスマートフォンから500msごとに疑似ランダム命令を送る方式ではありません。
+  </div>
+
+  <h3>使用する機能</h3>
+  <div class="wildChoices">
+    <label class="wildChoice">
+      <input id="wildVibration" type="checkbox" checked>
+      <span>振動</span>
+    </label>
+    <label class="wildChoice">
+      <input id="wildSuction" type="checkbox" checked>
+      <span>吸引</span>
+    </label>
+    <label class="wildChoice">
+      <input id="wildElectric" type="checkbox" checked>
+      <span>微弱電流</span>
+    </label>
+  </div>
+  <div class="small">
+    デフォルトは3機能すべてONです。少なくとも1つを選択してください。
+  </div>
+
+  <h3>継続時間</h3>
+  <div class="grid2">
+    <div class="field">
+      <label>時</label>
+      <input id="wildHours" type="number" min="0" max="2" value="0">
+    </div>
+    <div class="field">
+      <label>分</label>
+      <input id="wildMinutes" type="number" min="0" max="59" value="5">
+    </div>
+  </div>
+  <div class="small" style="margin-top:7px">
+    開始時の指定は1分単位です。最大2時間59分（179分）。
+  </div>
+
+  <div class="bigtime" id="wildCountdown">00:05:00</div>
+
+  <label class="check">
+    <input id="microProtection" type="checkbox" checked>
+    開始前に微弱電流保護をONにする
+  </label>
+  <label class="check">
+    <input id="useWakeLock" type="checkbox" checked>
+    対応ブラウザでは画面スリープを抑止する
+  </label>
+
+  <div class="grid2">
+    <button id="wildStart" class="wild" disabled>失控モード開始</button>
+    <button id="wildStop" class="danger" disabled>失控モード停止</button>
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="grid4">
+    <div class="metric"><span class="small">設定時間</span><b id="configuredMinutes">5分</b></div>
+    <div class="metric"><span class="small">設定マスク</span><b id="configuredMask">7</b></div>
+    <div class="metric"><span class="small">本体報告 残り</span><b id="reportedRemaining">-</b></div>
+    <div class="metric"><span class="small">本体報告 マスク</span><b id="reportedMask">-</b></div>
+  </div>
+
+  <details>
+    <summary>プロトコル情報</summary>
+    <div class="small" style="margin-top:10px">
+      開始は属性 <span class="mono">0009</span>（総時間・分）と
+      <span class="mono">000B</span>（3機能マスク）を同一メッセージで送信します。
+      本体の残り時間は <span class="mono">000A</span>（2バイト・秒）として通知されます。
+      v6.1ではチェックした機能からマスクを自動生成します。
+      実機観測とビットマスクの整合から、振動=1、吸引=2、微弱電流=4として扱います。
+    </div>
+  </details>
+</div>
+
+<div class="card stop">
+  <h2>停止</h2>
+  <div class="grid2">
+    <button id="stopKnown" class="danger" disabled>■ 通常3機能を停止</button>
+    <button id="panic" class="danger" disabled>■ 全停止 + Bluetooth切断</button>
+  </div>
+  <div class="small" style="margin-top:8px">
+    「全停止」は失控モードを0分・マスク0へ戻し、通常3機能も0にしてから切断します。
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <h2 style="margin:0">BLEログ</h2>
+    <button id="clearLog" style="padding:8px 10px;font-size:12px">消去</button>
+  </div>
+  <div id="log" class="log">待機中</div>
+  <div style="height:10px"></div>
+  <button id="copyReport" style="width:100%">診断レポートをコピー</button>
+</div>
+</main>
+
+<script>
+'use strict';
+
+const SERVICE_UUID='0000ee01-0000-1000-8000-00805f9b34fb';
+const WRITE_UUID='0000ee03-0000-1000-8000-00805f9b34fb';
+const NOTIFY_UUID='0000ee02-0000-1000-8000-00805f9b34fb';
+
+const KNOWN={
+  vibration:[0x0001,0x0002],
+  electric:[0x0003,0x0004],
+  suction:[0x0007,0x0008]
+};
+
+const WILD_BITS={
+  vibration:0x01,
+  suction:0x02,
+  electric:0x04
+};
+
+let device=null;
+let writeChar=null;
+let notifyChar=null;
+let writeQueue=Promise.resolve();
+let messageId=1;
+let notifyBuffers=new Map();
+
+const normalState={suction:0,vibration:0,electric:0};
+let normalKeepAliveTimer=null;
+
+let wildRunning=false;
+let wildRemainingLocal=0;
+let wildLocalTimer=null;
+let wildPollTimer=null;
+let wakeLock=null;
+
+let lastStatus={
+  battery:null,
+  outOfControlMinutes:null,
+  outOfControlRemaining:null,
+  outOfControlMask:null,
+  microcurrentProtection:null
+};
+
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||0));
+
+function log(msg){
+  const t=new Date().toLocaleTimeString();
+  $('log').textContent=`[${t}] ${msg}\n`+$('log').textContent;
+}
+function bytesHex(bytes){
+  return [...bytes].map(x=>x.toString(16).padStart(2,'0')).join(' ');
+}
+function nextMessageId(){
+  const id=messageId;
+  messageId=(messageId+1)%0xff;
+  return id;
+}
+function property(id,descriptor,value){
+  const values=Array.isArray(value)?value:[value];
+  return {
+    id:id&0xffff,
+    descriptor:descriptor&0xff,
+    value:values.map(v=>v&0xff)
+  };
+}
+function encodeProperties(properties){
+  const out=[properties.length&0xff];
+  for(const item of properties){
+    out.push((item.id>>8)&0xff,item.id&0xff,item.descriptor,...item.value);
+  }
+  return new Uint8Array(out);
+}
+function packetize(logical){
+  const payload=new Uint8Array(1+logical.length);
+  payload[0]=0x00;
+  payload.set(logical,1);
+
+  const id=nextMessageId();
+  const frames=[];
+  let seq=1;
+
+  for(let offset=0;offset<payload.length;offset+=18){
+    const part=payload.slice(offset,offset+18);
+    const frame=new Uint8Array(2+part.length);
+    frame[0]=id;
+    frame[1]=seq++;
+    frame.set(part,2);
+    frames.push(frame);
+  }
+  if(payload.length%18===0){
+    frames.push(new Uint8Array([id,seq]));
+  }
+  return frames;
+}
+async function writeFrame(frame,label){
+  if(!writeChar||!device?.gatt?.connected) throw new Error('BLE未接続');
+
+  if(writeChar.properties?.write && typeof writeChar.writeValueWithResponse==='function'){
+    await writeChar.writeValueWithResponse(frame);
+  }else if(typeof writeChar.writeValueWithoutResponse==='function'){
+    await writeChar.writeValueWithoutResponse(frame);
+  }else{
+    await writeChar.writeValue(frame);
+  }
+
+  log(`${label}: ${bytesHex(frame)}`);
+}
+function enqueueLogical(logical,label){
+  const frames=packetize(logical);
+  writeQueue=writeQueue.catch(()=>{}).then(async()=>{
+    for(let i=0;i<frames.length;i++){
+      await writeFrame(frames[i],label+(frames.length>1?` [${i+1}/${frames.length}]`:''));
+      if(i+1<frames.length) await sleep(30);
+    }
+  });
+  return writeQueue;
+}
+function sendProperties(properties,label){
+  return enqueueLogical(encodeProperties(properties),label);
+}
+
+function setConnected(on){
+  $('connStatus').textContent=on?`接続済み: ${device?.name||'SOSEXY'}`:'未接続';
+  $('connDot').classList.toggle('on',on);
+
+  const ids=['suction','vibration','electric','queryStatus','wildStart','wildStop','stopKnown','panic'];
+  ids.forEach(id=>$(id).disabled=!on);
+
+  if(on&&wildRunning){
+    ['suction','vibration','electric','wildStart'].forEach(id=>$(id).disabled=true);
+  }
+
+  $('connect').textContent=on?'再接続':'Bluetooth 接続';
+}
+
+function setWildUiRunning(running){
+  wildRunning=running;
+  $('wildState').textContent=running?'実行中':'停止';
+  $('connDot').classList.toggle('red',running);
+
+  if(device?.gatt?.connected){
+    $('wildStart').disabled=running;
+    $('wildStop').disabled=false;
+    ['suction','vibration','electric'].forEach(id=>$(id).disabled=running);
+  }
+}
+
+async function connectBLE(){
+  if(!navigator.bluetooth){
+    throw new Error('Web Bluetoothが利用できません。iPhoneではBluefy等でHTTPSページを開いてください。');
+  }
+
+  if(device?.gatt?.connected){
+    try{device.gatt.disconnect();}catch(_){}
+    await sleep(250);
+  }
+
+  device=await navigator.bluetooth.requestDevice({
+    filters:[{namePrefix:'SOSEXY'}],
+    optionalServices:[SERVICE_UUID]
+  });
+
+  device.addEventListener('gattserverdisconnected',()=>{
+    writeChar=null;
+    notifyChar=null;
+    stopNormalKeepAlive();
+    stopWildTimers();
+    setConnected(false);
+    setWildUiRunning(false);
+    log('BLE切断');
+  });
+
+  const server=await device.gatt.connect();
+  const service=await server.getPrimaryService(SERVICE_UUID);
+  writeChar=await service.getCharacteristic(WRITE_UUID);
+
+  notifyChar=await service.getCharacteristic(NOTIFY_UUID);
+  notifyChar.addEventListener('characteristicvaluechanged',handleNotification);
+  await notifyChar.startNotifications();
+  log('NOTIFY開始');
+
+  setConnected(true);
+  log(`接続完了: ${device.name||'SOSEXY'}`);
+
+  await queryStatus();
+}
+
+function parsePropertyPayload(payload){
+  if(!payload.length||payload[0]!==0x00) return null;
+
+  let offset=1;
+  const count=payload[offset++];
+  const items=[];
+
+  for(let i=0;i<count;i++){
+    if(offset+3>payload.length) return null;
+
+    const id=(payload[offset]<<8)|payload[offset+1];
+    const descriptor=payload[offset+2];
+    offset+=3;
+
+    const length=descriptor===0xaf?15:(descriptor&0x0f);
+    if(length<=0||offset+length>payload.length) return null;
+
+    const value=payload.slice(offset,offset+length);
+    offset+=length;
+
+    items.push({id,descriptor,value});
+  }
+  return items;
+}
+
+function propertyNumber(item){
+  if(item.value.length===1) return item.value[0];
+  if(item.value.length===2) return (item.value[0]<<8)|item.value[1];
+  return null;
+}
+
+function handleProperty(item){
+  const value=propertyNumber(item);
+
+  switch(item.id){
+    case 0x0001:
+      if(value!==null){normalState.vibration=value;$('vibration').value=value;$('vibrationValue').textContent=value;}
+      break;
+    case 0x0003:
+      if(value!==null){normalState.electric=value;$('electric').value=value;$('electricValue').textContent=value;}
+      break;
+    case 0x0005:
+      lastStatus.battery=value;
+      $('battery').textContent=value===null?'-':`${value}%`;
+      break;
+    case 0x0007:
+      if(value!==null){normalState.suction=value;$('suction').value=value;$('suctionValue').textContent=value;}
+      break;
+    case 0x0009:
+      lastStatus.outOfControlMinutes=value;
+      break;
+    case 0x000a:
+      lastStatus.outOfControlRemaining=value;
+      if(value!==null){
+        $('reportedRemaining').textContent=formatTime(value);
+        if(value>0){
+          wildRemainingLocal=value;
+          setWildUiRunning(true);
+        }else if((lastStatus.outOfControlMask||0)===0){
+          setWildUiRunning(false);
+          stopWildTimers();
+        }
+      }
+      break;
+    case 0x000b:
+      lastStatus.outOfControlMask=value;
+      $('reportedMask').textContent=value===null?'-':String(value);
+      $('maskState').textContent=value===null?'-':String(value);
+      if(value===0&&(lastStatus.outOfControlRemaining||0)===0){
+        setWildUiRunning(false);
+      }
+      break;
+    case 0x000e:
+      lastStatus.microcurrentProtection=value;
+      break;
+  }
+}
+
+function handleNotification(event){
+  try{
+    const frame=new Uint8Array(
+      event.target.value.buffer,
+      event.target.value.byteOffset,
+      event.target.value.byteLength
+    );
+    if(frame.length<2) return;
+
+    log(`NOTIFY: ${bytesHex(frame)}`);
+
+    const msgId=frame[0];
+    const seq=frame[1];
+    let state=notifyBuffers.get(msgId);
+
+    if(!state||seq!==state.nextSeq){
+      state={nextSeq:seq,chunks:[]};
+    }
+
+    state.nextSeq=seq+1;
+    state.chunks.push(frame.slice(2));
+    notifyBuffers.set(msgId,state);
+
+    if(frame.length>=20) return;
+
+    notifyBuffers.delete(msgId);
+
+    const combined=[];
+    for(const chunk of state.chunks) combined.push(...chunk);
+    const items=parsePropertyPayload(Uint8Array.from(combined));
+
+    for(const item of items||[]) handleProperty(item);
+  }catch(e){
+    log(`NOTIFY解析失敗: ${e.message}`);
+  }
+}
+
+async function queryStatus(){
+  await sendProperties(
+    [property(0x00c8,0x11,0x01)],
+    'STATUS QUERY'
+  );
+}
+
+async function setNormal(kind,level){
+  if(wildRunning){
+    throw new Error('失控モード実行中は通常制御を変更できません');
+  }
+
+  const [strengthId,modeId]=KNOWN[kind];
+  level=clamp(level,0,100)|0;
+  normalState[kind]=level;
+  $(kind+'Value').textContent=level;
+
+  await sendProperties([
+    property(strengthId,0x11,level),
+    property(modeId,0x11,0x01)
+  ],`${kind} ${level}`);
+
+  refreshNormalKeepAlive();
+}
+
+function bindSlider(kind){
+  const el=$(kind);
+  let timer=null;
+
+  el.addEventListener('input',()=>{
+    const value=Number(el.value);
+    $(kind+'Value').textContent=value;
+    clearTimeout(timer);
+    timer=setTimeout(()=>{
+      setNormal(kind,value).catch(e=>log(`送信失敗: ${e.message}`));
+    },70);
+  });
+
+  el.addEventListener('change',()=>{
+    clearTimeout(timer);
+    setNormal(kind,Number(el.value)).catch(e=>log(`送信失敗: ${e.message}`));
+  });
+}
+
+function stopNormalKeepAlive(){
+  if(normalKeepAliveTimer){
+    clearInterval(normalKeepAliveTimer);
+    normalKeepAliveTimer=null;
+  }
+}
+
+function refreshNormalKeepAlive(){
+  stopNormalKeepAlive();
+
+  if(!$('normalKeepAlive').checked||!device?.gatt?.connected||wildRunning) return;
+  if(!Object.values(normalState).some(v=>v>0)) return;
+
+  normalKeepAliveTimer=setInterval(async()=>{
+    if(!device?.gatt?.connected||wildRunning) return;
+
+    for(const [kind,level] of Object.entries(normalState)){
+      if(level<=0) continue;
+
+      const [strengthId,modeId]=KNOWN[kind];
+      try{
+        await sendProperties([
+          property(strengthId,0x11,level),
+          property(modeId,0x11,0x01)
+        ],`KEEPALIVE ${kind} ${level}`);
+      }catch(e){
+        log(`KEEPALIVE失敗: ${e.message}`);
+      }
+    }
+  },25000);
+}
+
+async function stopKnown(){
+  normalState.suction=0;
+  normalState.vibration=0;
+  normalState.electric=0;
+
+  ['suction','vibration','electric'].forEach(kind=>{
+    $(kind).value=0;
+    $(kind+'Value').textContent='0';
+  });
+
+  await sendProperties([
+    property(0x0001,0x11,0),
+    property(0x0003,0x11,0),
+    property(0x0007,0x11,0)
+  ],'STOP ALL NORMAL');
+
+  stopNormalKeepAlive();
+}
+
+function selectedWildMask(){
+  let mask=0;
+  if($('wildVibration').checked) mask|=WILD_BITS.vibration;
+  if($('wildSuction').checked) mask|=WILD_BITS.suction;
+  if($('wildElectric').checked) mask|=WILD_BITS.electric;
+  return mask;
+}
+
+function selectedWildLabels(){
+  const labels=[];
+  if($('wildVibration').checked) labels.push('振動');
+  if($('wildSuction').checked) labels.push('吸引');
+  if($('wildElectric').checked) labels.push('微弱電流');
+  return labels;
+}
+
+function updateWildSelectionUi(){
+  const mask=selectedWildMask();
+  $('configuredMask').textContent=mask ? String(mask) : '-';
+  saveSettings();
+}
+
+function wildMinutesValue(){
+  const hours=clamp($('wildHours').value,0,2)|0;
+  const mins=clamp($('wildMinutes').value,0,59)|0;
+  const total=hours*60+mins;
+
+  if(total<1) throw new Error('継続時間を1分以上にしてください');
+  if(total>179) throw new Error('継続時間は最大179分です');
+
+  return total;
+}
+
+function formatTime(totalSeconds){
+  const sec=Math.max(0,Math.floor(Number(totalSeconds)||0));
+  const h=Math.floor(sec/3600);
+  const m=Math.floor((sec%3600)/60);
+  const s=sec%60;
+  return [h,m,s].map(v=>String(v).padStart(2,'0')).join(':');
+}
+
+function updateDurationPreview(){
+  const hours=clamp($('wildHours').value,0,2)|0;
+  const mins=clamp($('wildMinutes').value,0,59)|0;
+  const total=Math.min(179,hours*60+mins);
+  $('wildCountdown').textContent=formatTime(total*60);
+  $('configuredMinutes').textContent=`${total}分`;
+  saveSettings();
+}
+
+async function acquireWakeLock(){
+  if(!$('useWakeLock').checked||!('wakeLock' in navigator)) return;
+
+  try{
+    wakeLock=await navigator.wakeLock.request('screen');
+    log('Wake Lock取得');
+  }catch(e){
+    log(`Wake Lock利用不可: ${e.message}`);
+  }
+}
+
+async function releaseWakeLock(){
+  try{
+    if(wakeLock) await wakeLock.release();
+  }catch(_){}
+  wakeLock=null;
+}
+
+function stopWildTimers(){
+  if(wildLocalTimer){
+    clearInterval(wildLocalTimer);
+    wildLocalTimer=null;
+  }
+  if(wildPollTimer){
+    clearInterval(wildPollTimer);
+    wildPollTimer=null;
+  }
+  releaseWakeLock().catch(()=>{});
+}
+
+function startWildTimers(seconds){
+  stopWildTimers();
+  wildRemainingLocal=seconds;
+
+  $('wildCountdown').textContent=formatTime(wildRemainingLocal);
+
+  wildLocalTimer=setInterval(()=>{
+    if(wildRemainingLocal>0) wildRemainingLocal--;
+    $('wildCountdown').textContent=formatTime(wildRemainingLocal);
+
+    if(wildRemainingLocal<=0){
+      clearInterval(wildLocalTimer);
+      wildLocalTimer=null;
+      setWildUiRunning(false);
+    }
+  },1000);
+
+  wildPollTimer=setInterval(()=>{
+    if(device?.gatt?.connected){
+      queryStatus().catch(e=>log(`状態同期失敗: ${e.message}`));
+    }
+  },5000);
+}
+
+async function startWild(){
+  const minutes=wildMinutesValue();
+  const mask=selectedWildMask();
+  const labels=selectedWildLabels();
+
+  if(mask===0){
+    throw new Error('失控モードで使用する機能を1つ以上選択してください');
+  }
+
+  await stopKnown();
+
+  if($('microProtection').checked && (mask & WILD_BITS.electric)){
+    await sendProperties(
+      [property(0x000e,0x11,0x01)],
+      'MICROCURRENT PROTECTION ON'
+    );
+  }
+
+  await sendProperties([
+    property(0x0009,0x11,minutes),
+    property(0x000b,0x11,mask)
+  ],`WILD START ${minutes}min mask=${mask}`);
+
+  lastStatus.outOfControlMinutes=minutes;
+  lastStatus.outOfControlMask=mask;
+  $('reportedMask').textContent=String(mask);
+  $('maskState').textContent=String(mask);
+  $('configuredMask').textContent=String(mask);
+
+  setWildUiRunning(true);
+  await acquireWakeLock();
+  startWildTimers(minutes*60);
+
+  await sleep(250);
+  await queryStatus();
+
+  log(`失控モード開始: ${minutes}分 / ${labels.join('+')} / mask=${mask}`);
+}
+
+async function stopWild(){
+  await sendProperties([
+    property(0x0009,0x11,0),
+    property(0x000b,0x11,0)
+  ],'WILD STOP');
+
+  await stopKnown();
+
+  lastStatus.outOfControlMinutes=0;
+  lastStatus.outOfControlRemaining=0;
+  lastStatus.outOfControlMask=0;
+
+  $('reportedRemaining').textContent='00:00:00';
+  $('reportedMask').textContent='0';
+  $('maskState').textContent='0';
+
+  setWildUiRunning(false);
+  stopWildTimers();
+
+  await sleep(200);
+  await queryStatus();
+
+  log('失控モード停止');
+}
+
+async function panicDisconnect(){
+  try{await stopWild();}catch(e){log(`失控停止失敗: ${e.message}`);}
+  try{
+    if(device?.gatt?.connected) device.gatt.disconnect();
+  }catch(_){}
+  setConnected(false);
+  setWildUiRunning(false);
+  log('全停止後にBluetooth切断');
+}
+
+function saveSettings(){
+  try{
+    localStorage.setItem('sosexy-v6-settings',JSON.stringify({
+      hours:$('wildHours').value,
+      minutes:$('wildMinutes').value,
+      normalKeepAlive:$('normalKeepAlive').checked,
+      microProtection:$('microProtection').checked,
+      wakeLock:$('useWakeLock').checked,
+      wildVibration:$('wildVibration').checked,
+      wildSuction:$('wildSuction').checked,
+      wildElectric:$('wildElectric').checked
+    }));
+  }catch(_){}
+}
+
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem('sosexy-v6-settings');
+    if(!raw) return;
+    const d=JSON.parse(raw);
+
+    if(d.hours!==undefined) $('wildHours').value=d.hours;
+    if(d.minutes!==undefined) $('wildMinutes').value=d.minutes;
+    if(d.normalKeepAlive!==undefined) $('normalKeepAlive').checked=!!d.normalKeepAlive;
+    if(d.microProtection!==undefined) $('microProtection').checked=!!d.microProtection;
+    if(d.wakeLock!==undefined) $('useWakeLock').checked=!!d.wakeLock;
+    if(d.wildVibration!==undefined) $('wildVibration').checked=!!d.wildVibration;
+    if(d.wildSuction!==undefined) $('wildSuction').checked=!!d.wildSuction;
+    if(d.wildElectric!==undefined) $('wildElectric').checked=!!d.wildElectric;
+  }catch(_){}
+}
+
+function makeReport(){
+  return {
+    app:'FUNF / SOSEXY Controller v6',
+    generated:new Date().toISOString(),
+    device:device?.name||null,
+    connected:!!device?.gatt?.connected,
+    wild_running:wildRunning,
+    normal_state:{...normalState},
+    last_status:{...lastStatus},
+    configured_minutes:(()=>{try{return wildMinutesValue();}catch(_){return null;}})(),
+    configured_mask:selectedWildMask(),
+    configured_channels:selectedWildLabels(),
+    log:$('log').textContent
+  };
+}
+
+async function copyReport(){
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(makeReport(),null,2));
+    log('診断レポートをコピー');
+  }catch(e){
+    log(`コピー失敗: ${e.message}`);
+  }
+}
+
+$('connect').addEventListener('click',async()=>{
+  try{
+    await connectBLE();
+  }catch(e){
+    setConnected(false);
+    log(`接続失敗: ${e.message}`);
+    alert('接続できませんでした。\n\n'+e.message);
+  }
+});
+
+['suction','vibration','electric'].forEach(bindSlider);
+
+$('normalKeepAlive').addEventListener('change',()=>{
+  saveSettings();
+  refreshNormalKeepAlive();
+});
+
+['wildHours','wildMinutes'].forEach(id=>{
+  $(id).addEventListener('input',updateDurationPreview);
+});
+
+['wildVibration','wildSuction','wildElectric'].forEach(id=>{
+  $(id).addEventListener('change',updateWildSelectionUi);
+});
+
+$('microProtection').addEventListener('change',saveSettings);
+$('useWakeLock').addEventListener('change',saveSettings);
+
+$('queryStatus').addEventListener('click',()=>{
+  queryStatus().catch(e=>log(`状態取得失敗: ${e.message}`));
+});
+
+$('wildStart').addEventListener('click',()=>{
+  startWild().catch(e=>{
+    log(`失控モード開始失敗: ${e.message}`);
+    alert(e.message);
+  });
+});
+
+$('wildStop').addEventListener('click',()=>{
+  stopWild().catch(e=>log(`失控モード停止失敗: ${e.message}`));
+});
+
+$('stopKnown').addEventListener('click',()=>{
+  stopKnown().catch(e=>log(`通常停止失敗: ${e.message}`));
+});
+
+$('panic').addEventListener('click',()=>{
+  panicDisconnect().catch(e=>log(`全停止失敗: ${e.message}`));
+});
+
+$('clearLog').addEventListener('click',()=>{
+  $('log').textContent='';
+});
+
+$('copyReport').addEventListener('click',copyReport);
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&wildRunning&&device?.gatt?.connected){
+    queryStatus().catch(()=>{});
+  }
+});
+
+window.addEventListener('pagehide',()=>{
+  stopNormalKeepAlive();
+  releaseWakeLock().catch(()=>{});
+});
+
+loadSettings();
+updateDurationPreview();
+updateWildSelectionUi();
+setConnected(false);
+setWildUiRunning(false);
+</script>
+</body>
+</html>
