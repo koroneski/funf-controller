@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0d12">
+<title>FUNF / SOSEXY Controller</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--card:#151922;--line:#2a3140;--text:#f4f6fa;--muted:#9da7b8;--accent:#78a8ff;--danger:#ff5d68;--ok:#4dd59b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}
+main{max-width:620px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(30px + env(safe-area-inset-bottom))}
+h1{font-size:22px;margin:4px 0 6px}.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.status{display:flex;align-items:center;gap:8px;margin:12px 0}.dot{width:10px;height:10px;border-radius:50%;background:#777}.dot.on{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+button{border:0;border-radius:14px;padding:14px 16px;font-size:16px;font-weight:700;background:#263149;color:#fff;touch-action:manipulation}
+button.primary{width:100%;background:#2868d7}button.danger{width:100%;background:var(--danger);font-size:18px;margin-top:14px}
+button:disabled{opacity:.45}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.label{font-size:17px;font-weight:700}.value{font-variant-numeric:tabular-nums;font-size:20px;min-width:48px;text-align:right}
+input[type=range]{width:100%;margin:18px 0 8px;accent-color:var(--accent)}
+small{color:var(--muted);line-height:1.55}.log{white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#b8c1d1;max-height:170px;overflow:auto;background:#090b0f;padding:12px;border-radius:12px}
+.warn{border-left:3px solid #e4ad4d;padding-left:12px;color:#d9c69e}
+</style>
+</head>
+<body>
+<main>
+<h1>FUNF / SOSEXY Controller</h1>
+<div class="sub">iPhone + Web Bluetooth 用・非公式コントローラー</div>
+
+<div class="card">
+  <div class="status"><span id="dot" class="dot"></span><strong id="status">未接続</strong></div>
+  <button id="connect" class="primary">Bluetooth 接続</button>
+  <small>SOSEXY で始まるBLE機器を選択します。公式FUNFアプリは先に切断してください。</small>
+</div>
+
+<div class="card">
+  <div class="row"><span class="label">吸引</span><span id="suctionV" class="value">0</span></div>
+  <input id="suction" type="range" min="0" max="100" value="0" disabled>
+</div>
+
+<div class="card">
+  <div class="row"><span class="label">振動</span><span id="vibrationV" class="value">0</span></div>
+  <input id="vibration" type="range" min="0" max="100" value="0" disabled>
+</div>
+
+<div class="card">
+  <div class="row"><span class="label">微弱電流</span><span id="electricV" class="value">0</span></div>
+  <input id="electric" type="range" min="0" max="100" value="0" disabled>
+  <small class="warn">説明書の注意事項に従い、低強度から使用してください。医療機器使用中など禁忌に該当する場合は使用しないでください。</small>
+</div>
+
+<button id="stop" class="danger" disabled>■ すべて停止</button>
+
+<div class="card">
+  <div class="row"><strong>通信ログ</strong><button id="clear" style="padding:8px 11px;font-size:12px">消去</button></div>
+  <div id="log" class="log">待機中</div>
+</div>
+
+<small>
+このページはコミュニティが解析したSOSEXY BLEプロトコルに基づきます。FUNF公式ソフトウェアではありません。
+AE00系のOTAサービスにはアクセスしません。
+</small>
+</main>
+
+<script>
+'use strict';
+
+// Community reverse-engineered SOSEXY GATT layout.
+const SERVICE_UUID = '0000ee01-0000-1000-8000-00805f9b34fb';
+const WRITE_UUID   = '0000ee03-0000-1000-8000-00805f9b34fb';
+const NOTIFY_UUID  = '0000ee02-0000-1000-8000-00805f9b34fb';
+
+let device = null;
+let writeChar = null;
+let notifyChar = null;
+let writeQueue = Promise.resolve();
+
+const state = { suction: 0, vibration: 0, electric: 0 };
+const channels = {
+  suction:   [0x07, 0x08],
+  vibration: [0x01, 0x02],
+  electric:  [0x03, 0x04]
+};
+
+const $ = id => document.getElementById(id);
+const log = msg => {
+  const t = new Date().toLocaleTimeString();
+  $('log').textContent = `[${t}] ${msg}\n` + $('log').textContent;
+};
+
+function setConnected(on) {
+  $('status').textContent = on ? `接続済み: ${device?.name || 'SOSEXY'}` : '未接続';
+  $('dot').classList.toggle('on', on);
+  ['suction','vibration','electric','stop'].forEach(id => $(id).disabled = !on);
+  $('connect').textContent = on ? '再接続' : 'Bluetooth 接続';
+}
+
+function frame(a, b, level) {
+  level = Math.max(0, Math.min(100, Number(level) | 0));
+  return new Uint8Array([
+    0x01,0x01,0x00,0x02,0x00,
+    a,0x11,level,0x00,b,0x11,0x01
+  ]);
+}
+
+// Some community implementations use this handshake after GATT connection.
+// Failure is deliberately non-fatal because another implementation controls
+// the same model without an explicit initialization write.
+const INIT = new Uint8Array([0x01,0x01,0x00,0x01,0x00,0xC8,0x11,0x01]);
+
+async function rawWrite(bytes) {
+  if (!writeChar || !device?.gatt?.connected) throw new Error('BLE未接続');
+  try {
+    if (typeof writeChar.writeValueWithResponse === 'function')
+      await writeChar.writeValueWithResponse(bytes);
+    else
+      await writeChar.writeValue(bytes);
+  } catch (e) {
+    if (typeof writeChar.writeValueWithoutResponse === 'function')
+      await writeChar.writeValueWithoutResponse(bytes);
+    else throw e;
+  }
+}
+
+function queuedWrite(bytes) {
+  writeQueue = writeQueue.catch(()=>{}).then(() => rawWrite(bytes));
+  return writeQueue;
+}
+
+async function connectBLE() {
+  if (!navigator.bluetooth) {
+    throw new Error('このブラウザはWeb Bluetoothを提供していません。iPhoneではBluefy等のWeb Bluetooth対応ブラウザで開いてください。');
+  }
+
+  if (!device) {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: 'SOSEXY' }],
+      optionalServices: [SERVICE_UUID]
+    });
+    device.addEventListener('gattserverdisconnected', () => {
+      writeChar = null; notifyChar = null; setConnected(false); log('BLE切断');
+    });
+  }
+
+  log('GATTへ接続中…');
+  const server = await device.gatt.connect();
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  writeChar = await service.getCharacteristic(WRITE_UUID);
+
+  try {
+    notifyChar = await service.getCharacteristic(NOTIFY_UUID);
+    notifyChar.addEventListener('characteristicvaluechanged', e => {
+      const v = new Uint8Array(e.target.value.buffer);
+      log('NOTIFY: ' + [...v].map(x=>x.toString(16).padStart(2,'0')).join(' '));
+    });
+    await notifyChar.startNotifications();
+    log('NOTIFY開始');
+  } catch (e) {
+    log('NOTIFY開始を省略: ' + e.message);
+  }
+
+  // Best-effort handshake.
+  try { await rawWrite(INIT); log('初期化フレーム送信'); }
+  catch(e) { log('初期化フレーム応答なし（継続）: ' + e.message); }
+
+  setConnected(true);
+  log(`接続完了: ${device.name || 'SOSEXY'}`);
+}
+
+async function setLevel(kind, level) {
+  const [a,b] = channels[kind];
+  level = Math.max(0, Math.min(100, Number(level) | 0));
+  state[kind] = level;
+  $(kind + 'V').textContent = level;
+  await queuedWrite(frame(a,b,level));
+}
+
+function bindSlider(kind) {
+  const el = $(kind);
+  let timer = null;
+  el.addEventListener('input', () => {
+    const value = Number(el.value);
+    $(kind + 'V').textContent = value;
+    state[kind] = value;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      setLevel(kind, value).then(()=>log(`${kind}: ${value}`))
+                           .catch(e=>log(`送信失敗: ${e.message}`));
+    }, 70);
+  });
+  // Ensure final finger position is sent.
+  el.addEventListener('change', () => {
+    clearTimeout(timer);
+    setLevel(kind, Number(el.value)).catch(e=>log(`送信失敗: ${e.message}`));
+  });
+}
+
+async function stopAll() {
+  // Protocol controls each function independently, so explicitly zero all three.
+  await setLevel('suction', 0);
+  await setLevel('vibration', 0);
+  await setLevel('electric', 0);
+  ['suction','vibration','electric'].forEach(k => { $(k).value = 0; $(k+'V').textContent = '0'; });
+  log('すべて停止');
+}
+
+$('connect').addEventListener('click', async () => {
+  try { await connectBLE(); }
+  catch(e) { setConnected(false); log('接続失敗: ' + e.message); alert('接続できませんでした。\n\n' + e.message); }
+});
+
+$('stop').addEventListener('click', () => stopAll().catch(e=>log('停止失敗: '+e.message)));
+$('clear').addEventListener('click', () => $('log').textContent = '');
+['suction','vibration','electric'].forEach(bindSlider);
+
+window.addEventListener('pagehide', () => {
+  // Best effort only: browsers may suspend before asynchronous BLE writes complete.
+  if (device?.gatt?.connected) stopAll().catch(()=>{});
+});
+
+setConnected(false);
+</script>
+</body>
+</html>
