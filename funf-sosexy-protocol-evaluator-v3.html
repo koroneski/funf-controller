@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FUNF / SOSEXY Evaluator v3</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--card:#151922;--line:#2a3140;--txt:#f4f6fa;--muted:#9da7b8;--ok:#4dd59b;--exp:#c58cff;--warn:#e4ad4d;--danger:#ff5d68}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}main{max-width:720px;margin:auto;padding:18px 16px 40px}h1{font-size:22px;margin:4px 0}.sub,small,.small{color:var(--muted);font-size:12px;line-height:1.55}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0}.exp{border-color:#51386e}.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.grid2,.grid3,.grid4{display:grid;gap:10px}.grid2{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:repeat(3,1fr)}.grid4{grid-template-columns:repeat(4,1fr)}@media(max-width:560px){.grid4{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.grid2,.grid3{grid-template-columns:1fr}}button{border:0;border-radius:12px;padding:12px;font-weight:700;background:#263149;color:#fff}button.primary{width:100%;background:#2868d7}button.expbtn{background:#563773}button.warn{background:#805b18}button.danger{background:var(--danger)}button:disabled{opacity:.4}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#0c1017;color:#fff;padding:9px;font-size:15px}textarea{min-height:68px}.field label{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.dot{width:10px;height:10px;border-radius:50%;background:#777;display:inline-block}.dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.frame,.log{background:#090b0f;border-radius:10px;padding:10px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}.log{white-space:pre-wrap;max-height:260px;overflow:auto;color:#b8c1d1}.frame{white-space:nowrap;overflow:auto}.metric{background:#0d1118;border:1px solid var(--line);border-radius:10px;padding:9px}.metric b{display:block;font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace}.big{font:700 36px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;padding:8px}.box{border-left:3px solid var(--exp);padding-left:10px;color:#d8c3ef}.warnbox{border-left:3px solid var(--warn);padding-left:10px;color:#dccaa6}.pill{display:inline-block;background:#3a2a4d;color:#e5d4f6;border-radius:999px;padding:3px 7px;font-size:11px}.check{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:#c9d0dc;margin:8px 0}.check input{width:auto;margin-top:2px}hr{border:0;border-top:1px solid var(--line);margin:16px 0}a{color:#9ec0ff}
+</style>
+</head>
+<body><main>
+<h1>FUNF / SOSEXY Protocol Evaluator v3</h1>
+<div class="sub">実機観測「0x0A / 0x0B は Payload A=0/1 のどちらでも約1秒だけ振動」を前提に、ワンショット性、再トリガー周期、Payload B の意味を切り分ける評価版です。</div>
+
+<div class="card">
+  <div class="row"><div><span id="dot" class="dot"></span> <b id="status">未接続</b></div></div>
+  <div style="height:10px"></div><button id="connect" class="primary">Bluetooth 接続</button>
+  <small>iPhoneではBluefy等のWeb Bluetooth対応ブラウザでHTTPSページを開いてください。</small>
+</div>
+
+<div class="card exp">
+  <h2>評価対象 <span class="pill">0A / 0B</span></h2>
+  <div class="box small">v3では byte7 を「強度」と断定せず <b>Payload A</b>、byte11 を <b>Payload B</b> と呼びます。0A/0Bは公開OSSで既知機能として解析されていないため、実機観測を優先します。</div>
+  <div style="height:10px"></div>
+  <div class="grid4">
+    <div class="field"><label>MODE1 / byte5</label><input id="modeA" value="0x0A"></div>
+    <div class="field"><label>Payload A / byte7</label><input id="payloadA" type="number" min="0" max="255" value="1"></div>
+    <div class="field"><label>MODE2 / byte9</label><input id="modeB" value="0x0B"></div>
+    <div class="field"><label>Payload B / byte11</label><input id="payloadB" type="number" min="0" max="255" value="1"></div>
+  </div>
+  <div style="height:10px"></div><div id="preview" class="frame"></div>
+  <h3>プリセット</h3>
+  <div class="grid4"><button data-p="0,1">A=0 / B=1</button><button data-p="1,1">A=1 / B=1</button><button data-p="1,0">A=1 / B=0</button><button data-p="1,2">A=1 / B=2</button></div>
+</div>
+
+<div class="card exp">
+  <h2>Test 1: ワンショット持続時間</h2>
+  <div class="small">フレームを1回だけ送信します。振動または赤LEDが終わった瞬間に「終了を観測」を押すと、手動観測時間を記録します。</div>
+  <div id="shotClock" class="big">0.000 s</div>
+  <div class="grid2"><button id="shotStart" class="expbtn" disabled>1回送信</button><button id="shotEnd" disabled>終了を観測</button></div>
+  <div style="height:10px"></div>
+  <div class="grid3"><div class="metric"><small>直近</small><b id="shotLast">-</b></div><div class="metric"><small>平均</small><b id="shotAvg">-</b></div><div class="metric"><small>回数</small><b id="shotN">0</b></div></div>
+</div>
+
+<div class="card exp">
+  <h2>Test 2: 再トリガー評価</h2>
+  <div class="box small">同じフレームを一定周期で再送します。終了時は「送信を止める」だけです。0A/0Bへ value=0 を送ればOFFになる、という仮定は採用しません。</div>
+  <div style="height:10px"></div>
+  <div class="grid3"><div class="field"><label>周期 ms</label><input id="intMs" type="number" min="100" max="5000" value="900"></div><div class="field"><label>評価時間 秒</label><input id="durSec" type="number" min="1" max="120" value="10"></div><div class="field"><label>終了後観察 ms</label><input id="graceMs" type="number" min="0" max="5000" value="1500"></div></div>
+  <h3>周期プリセット</h3>
+  <div class="grid4"><button data-i="1200">1200</button><button data-i="1000">1000</button><button data-i="900">900</button><button data-i="750">750</button><button data-i="500">500</button><button data-i="250">250</button></div>
+  <label class="check"><input id="wake" type="checkbox" checked>対応ブラウザでは画面スリープを抑止する</label>
+  <div class="grid2"><button id="repStart" class="expbtn" disabled>再トリガー開始</button><button id="repStop" class="warn" disabled>送信停止</button></div>
+  <div style="height:10px"></div>
+  <div class="grid3"><div class="metric"><small>送信回数</small><b id="txN">0</b></div><div class="metric"><small>実測平均周期</small><b id="meanI">-</b></div><div class="metric"><small>最大ジッター</small><b id="maxJ">-</b></div></div>
+</div>
+
+<div class="card exp">
+  <h2>Test 3: Payload B 探索</h2>
+  <div class="small">MODE1=0A / MODE2=0B と Payload A を固定し、最後の byte11 だけを変えて単発送信します。時間・モード・反復回数などに関係するかを確認します。</div>
+  <div style="height:10px"></div>
+  <div class="grid3"><div class="field"><label>開始 B</label><input id="bStart" type="number" min="0" max="255" value="0"></div><div class="field"><label>終了 B</label><input id="bEnd" type="number" min="0" max="255" value="8"></div><div class="field"><label>候補間隔 ms</label><input id="bGap" type="number" min="1500" max="10000" value="2500"></div></div>
+  <label class="check"><input id="sweepAck" type="checkbox">装着せずに観察することを確認し、自動探索を許可する</label>
+  <div class="grid2"><button id="sweepStart" class="expbtn" disabled>Payload B 探索開始</button><button id="sweepStop" class="warn" disabled>探索停止</button></div>
+  <div style="height:10px"></div><div class="row"><div><small>現在値</small><div id="curB" class="mono" style="font-size:22px">-</div></div><div><small>進捗</small><div id="progB" class="mono">待機中</div></div></div>
+</div>
+
+<div class="card">
+  <h2>観測記録</h2>
+  <div class="grid2"><div class="field"><label>赤LED</label><select id="led"><option>不明</option><option>変化なし</option><option>約1秒赤</option><option>連続赤</option><option>点滅</option></select></div><div class="field"><label>振動</label><select id="vib"><option>不明</option><option>変化なし</option><option>約1秒</option><option>連続</option><option>周期的</option></select></div></div>
+  <div style="height:10px"></div><textarea id="notes" placeholder="例: 900ms再送では赤LEDが途切れず、振動も連続した"></textarea>
+  <div style="height:10px"></div><button id="saveObs" style="width:100%">現在条件で観測を保存</button>
+  <h3>保存済み</h3><div id="obs" class="log">まだありません</div>
+</div>
+
+<div class="card">
+  <h2>停止・復旧</h2>
+  <div class="warnbox small">未知の0A/0BにはOFFを送らず、必要時は既知3機能 01/02、03/04、07/08 を0へ戻します。完全停止が必要ならBluetoothも切断します。</div>
+  <div style="height:10px"></div><div class="grid2"><button id="knownStop" class="danger" disabled>既知3機能を0へ</button><button id="panic" class="danger" disabled>既知停止 + Bluetooth切断</button></div>
+</div>
+
+<div class="card">
+  <div class="row"><h2>BLEログ</h2><button id="clear">消去</button></div><div id="log" class="log">待機中</div>
+  <div style="height:10px"></div><div class="grid2"><button id="copy">評価レポートをコピー</button><button id="download">JSONを保存</button></div>
+</div>
+
+<div class="card"><h2>根拠</h2><div class="small">公開OSSでは Service EE01、Write EE03、Notify EE02、および12バイト制御フレームが確認されています。既知通常機能は 01/02、03/04、07/08 です。0A/0Bは公開解析にはないため、本ページでは未知コマンドとして評価します。<br><br><a href="https://github.com/51enuxu/sosexy-ble-control" target="_blank">51enuxu/sosexy-ble-control</a><br><a href="https://github.com/Lumenocturne/bobo-bridge" target="_blank">Lumenocturne/bobo-bridge</a></div></div>
+
+<script>
+'use strict';
+const SVC='0000ee01-0000-1000-8000-00805f9b34fb', WR='0000ee03-0000-1000-8000-00805f9b34fb', NT='0000ee02-0000-1000-8000-00805f9b34fb';
+const INIT=new Uint8Array([1,1,0,1,0,0xC8,0x11,1]);
+let dev=null,wch=null,nch=null,q=Promise.resolve(),shotT=null,shotTick=null,shots=[],repAbort=false,repRun=false,repTimes=[],wl=null,sweepAbort=false,sweepRun=false,observations=[];
+const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms)), clamp=(n,a,b)=>Math.max(a,Math.min(b,Number(n)||0));
+function log(s){$('log').textContent=`[${new Date().toLocaleTimeString()}] ${s}\n`+$('log').textContent}
+function hx(a){return [...a].map(x=>x.toString(16).padStart(2,'0')).join(' ')}
+function byte(s){s=String(s).trim();let n;if(/^0x[0-9a-f]+$/i.test(s))n=parseInt(s.slice(2),16);else if(/^[0-9]+$/.test(s))n=parseInt(s,10);else if(/^[0-9a-f]+$/i.test(s))n=parseInt(s,16);else throw Error('不正な値: '+s);if(n<0||n>255)throw Error('0x00〜0xFFで指定');return n}
+function cfg(){return{a:byte($('modeA').value),x:clamp($('payloadA').value,0,255)|0,b:byte($('modeB').value),y:clamp($('payloadB').value,0,255)|0}}
+function frame(c){return new Uint8Array([1,1,0,2,0,c.a,0x11,c.x,0,c.b,0x11,c.y])}
+function preview(){try{$('preview').textContent='FRAME: '+hx(frame(cfg()))}catch(e){$('preview').textContent=e.message}}
+function connected(on){$('status').textContent=on?'接続済み: '+(dev?.name||'SOSEXY'):'未接続';$('dot').classList.toggle('on',on);['shotStart','shotEnd','repStart','repStop','knownStop','panic'].forEach(id=>$(id).disabled=!on);sweepButtons();$('connect').textContent=on?'再接続':'Bluetooth 接続'}
+function sweepButtons(){$('sweepStart').disabled=!(dev?.gatt?.connected&&$('sweepAck').checked)||sweepRun;$('sweepStop').disabled=!dev?.gatt?.connected||!sweepRun}
+async function raw(b){if(!wch||!dev?.gatt?.connected)throw Error('BLE未接続');try{if(wch.writeValueWithResponse)await wch.writeValueWithResponse(b);else await wch.writeValue(b)}catch(e){if(wch.writeValueWithoutResponse)await wch.writeValueWithoutResponse(b);else throw e}}
+function write(b,label){let c=new Uint8Array(b);q=q.catch(()=>{}).then(async()=>{await raw(c);log(label+': '+hx(c))});return q}
+async function connectBLE(){if(!navigator.bluetooth)throw Error('Web Bluetooth非対応');if(dev?.gatt?.connected){try{dev.gatt.disconnect()}catch(_){ }await sleep(200)}dev=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'SOSEXY'}],optionalServices:[SVC]});dev.addEventListener('gattserverdisconnected',()=>{wch=null;nch=null;repAbort=true;sweepAbort=true;connected(false);log('BLE切断')});let g=await dev.gatt.connect(),s=await g.getPrimaryService(SVC);wch=await s.getCharacteristic(WR);try{nch=await s.getCharacteristic(NT);nch.addEventListener('characteristicvaluechanged',e=>{let v=new Uint8Array(e.target.value.buffer,e.target.value.byteOffset,e.target.value.byteLength);log('NOTIFY: '+hx(v))});await nch.startNotifications();log('NOTIFY開始')}catch(e){log('NOTIFY省略: '+e.message)}try{await raw(INIT);log('INIT: '+hx(INIT))}catch(e){log('INIT応答なし: '+e.message)}connected(true);log('接続完了')}
+async function sendCurrent(label){let c=cfg();await write(frame(c),label);return c}
+function shotStats(){let n=shots.length;$('shotN').textContent=n;if(!n){$('shotLast').textContent=$('shotAvg').textContent='-';return}let last=shots[n-1],avg=shots.reduce((a,b)=>a+b,0)/n;$('shotLast').textContent=(last/1000).toFixed(3)+' s';$('shotAvg').textContent=(avg/1000).toFixed(3)+' s'}
+async function shot(){await sendCurrent('SINGLE');shotT=performance.now();clearInterval(shotTick);shotTick=setInterval(()=>{$('shotClock').textContent=((performance.now()-shotT)/1000).toFixed(3)+' s'},20);log('ワンショット計測開始')}
+function shotEnd(){if(shotT==null)return;let d=performance.now()-shotT;shots.push(d);shotT=null;clearInterval(shotTick);$('shotClock').textContent=(d/1000).toFixed(3)+' s';shotStats();log('終了観測 '+d.toFixed(1)+'ms')}
+async function wake(){if(!$('wake').checked||!navigator.wakeLock)return;try{wl=await navigator.wakeLock.request('screen')}catch(e){log('WakeLock不可: '+e.message)}}async function unwake(){try{if(wl)await wl.release()}catch(_){ }wl=null}
+function repStats(target){$('txN').textContent=repTimes.length;if(repTimes.length<2){$('meanI').textContent=$('maxJ').textContent='-';return}let d=[];for(let i=1;i<repTimes.length;i++)d.push(repTimes[i]-repTimes[i-1]);let m=d.reduce((a,b)=>a+b,0)/d.length,j=Math.max(...d.map(x=>Math.abs(x-target)));$('meanI').textContent=m.toFixed(1)+' ms';$('maxJ').textContent=j.toFixed(1)+' ms'}
+async function repeatRun(){if(repRun)return;let iv=clamp($('intMs').value,100,5000),dur=clamp($('durSec').value,1,120)*1000,gr=clamp($('graceMs').value,0,5000);repRun=true;repAbort=false;repTimes=[];$('repStart').disabled=true;await wake();let start=performance.now(),n=0;try{while(!repAbort){let target=start+n*iv,now=performance.now();if(now-start>=dur)break;if(now<target)await sleep(target-now);if(repAbort)break;await sendCurrent('RETRIGGER #'+(n+1));repTimes.push(performance.now());repStats(iv);n++}log(`再トリガー終了 ${n}回 target=${iv}ms`);if(!repAbort&&gr){log(`0A/0Bには停止送信せず ${gr}ms 観察`);await sleep(gr)}}finally{repRun=false;$('repStart').disabled=!dev?.gatt?.connected;await unwake()}}
+function repeatStop(){repAbort=true;log('再トリガー送信停止')}
+async function sweep(){if(sweepRun||!$('sweepAck').checked)return;let s=clamp($('bStart').value,0,255)|0,e=clamp($('bEnd').value,0,255)|0,g=clamp($('bGap').value,1500,10000);if(e<s)[s,e]=[e,s];let old=$('payloadB').value;sweepRun=true;sweepAbort=false;sweepButtons();try{let total=e-s+1,i=0;for(let y=s;y<=e;y++){if(sweepAbort)break;i++;$('payloadB').value=y;preview();$('curB').textContent=`${y} / 0x${y.toString(16).toUpperCase().padStart(2,'0')}`;$('progB').textContent=`${i}/${total}`;await sendCurrent('PAYLOAD-B='+y);let until=performance.now()+g;while(!sweepAbort&&performance.now()<until)await sleep(Math.min(100,until-performance.now()))}}finally{$('payloadB').value=old;preview();sweepRun=false;sweepButtons();$('progB').textContent=sweepAbort?'停止':'完了';log('Payload B探索終了')}}function sweepStop(){sweepAbort=true;log('Payload B探索停止要求')}
+async function knownStop(){repAbort=true;sweepAbort=true;let fs=[[0x01,0x02,'vibration'],[0x03,0x04,'electric'],[0x07,0x08,'suction']];for(let [a,b,n] of fs)await write(new Uint8Array([1,1,0,2,0,a,0x11,0,0,b,0x11,1]),'KNOWN STOP '+n);log('既知3機能を0へ')}
+async function panic(){try{await knownStop()}catch(_){ }try{if(dev?.gatt?.connected)dev.gatt.disconnect()}catch(_){ }connected(false);log('既知停止 + Bluetooth切断')}
+function saveObs(){let c=cfg(),r={time:new Date().toISOString(),frame:hx(frame(c)),config:c,interval_ms:+$('intMs').value,duration_sec:+$('durSec').value,led:$('led').value,vibration:$('vib').value,notes:$('notes').value.trim(),last_manual_ms:shots.length?shots[shots.length-1]:null};observations.push(r);$('obs').textContent=observations.map((x,i)=>`${i+1}. ${x.time}\n   frame=${x.frame}\n   LED=${x.led}, 振動=${x.vibration}, interval=${x.interval_ms}ms\n   ${x.notes||'(メモなし)'}`).join('\n\n');log('観測保存')}
+function report(){return{app:'FUNF / SOSEXY Protocol Evaluator v3',generated:new Date().toISOString(),hypothesis:'0x0A/0x0B behaves as an approximately 1-second one-shot on the tested device; Payload A 0 and 1 both triggered it.',current_frame:(()=>{try{return hx(frame(cfg()))}catch(_){return null}})(),shot_durations_ms:shots,retrigger_send_times_ms:repTimes,observations,ble_log:$('log').textContent}}
+async function copyReport(){try{await navigator.clipboard.writeText(JSON.stringify(report(),null,2));log('レポートをコピー')}catch(e){log('コピー失敗: '+e.message)}}
+function download(){let u=URL.createObjectURL(new Blob([JSON.stringify(report(),null,2)],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='sosexy-eval-v3-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('connect').onclick=()=>connectBLE().catch(e=>{connected(false);log('接続失敗: '+e.message);alert(e.message)});['modeA','payloadA','modeB','payloadB'].forEach(id=>$(id).oninput=preview);document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{let [x,y]=b.dataset.p.split(',');$('payloadA').value=x;$('payloadB').value=y;preview()});document.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{$('intMs').value=b.dataset.i});$('shotStart').onclick=()=>shot().catch(e=>log('送信失敗: '+e.message));$('shotEnd').onclick=shotEnd;$('repStart').onclick=()=>repeatRun().catch(e=>{repRun=false;log('再トリガー失敗: '+e.message)});$('repStop').onclick=repeatStop;$('sweepAck').onchange=sweepButtons;$('sweepStart').onclick=()=>sweep().catch(e=>{sweepRun=false;sweepButtons();log('探索失敗: '+e.message)});$('sweepStop').onclick=sweepStop;$('saveObs').onclick=saveObs;$('knownStop').onclick=()=>knownStop().catch(e=>log('停止失敗: '+e.message));$('panic').onclick=()=>panic().catch(e=>log('切断失敗: '+e.message));$('clear').onclick=()=>{$('log').textContent=''};$('copy').onclick=copyReport;$('download').onclick=download;document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'&&(repRun||sweepRun))log('警告: バックグラウンド化。タイマー遅延の可能性')});window.addEventListener('pagehide',()=>{repAbort=true;sweepAbort=true;unwake()});preview();shotStats();connected(false);sweepButtons();
+</script>
+</main></body></html>
