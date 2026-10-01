@@ -4,67 +4,259 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0b0d12">
-<title>FUNF / SOSEXY Controller</title>
+<title>FUNF / SOSEXY BLE Protocol Lab</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0d12;--card:#151922;--line:#2a3140;--text:#f4f6fa;--muted:#9da7b8;--accent:#78a8ff;--danger:#ff5d68;--ok:#4dd59b}
+:root{
+  color-scheme:dark;
+  --bg:#0b0d12; --card:#151922; --line:#2a3140; --text:#f4f6fa;
+  --muted:#9da7b8; --accent:#78a8ff; --danger:#ff5d68; --ok:#4dd59b;
+  --warn:#e4ad4d; --experimental:#c58cff;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}
-main{max-width:620px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(30px + env(safe-area-inset-bottom))}
-h1{font-size:22px;margin:4px 0 6px}.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
-.status{display:flex;align-items:center;gap:8px;margin:12px 0}.dot{width:10px;height:10px;border-radius:50%;background:#777}.dot.on{background:var(--ok);box-shadow:0 0 12px var(--ok)}
-button{border:0;border-radius:14px;padding:14px 16px;font-size:16px;font-weight:700;background:#263149;color:#fff;touch-action:manipulation}
-button.primary{width:100%;background:#2868d7}button.danger{width:100%;background:var(--danger);font-size:18px;margin-top:14px}
-button:disabled{opacity:.45}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.label{font-size:17px;font-weight:700}.value{font-variant-numeric:tabular-nums;font-size:20px;min-width:48px;text-align:right}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}
+main{max-width:680px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
+h1{font-size:22px;margin:4px 0 6px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0}
+.experimental{border-color:#51386e}
+.status{display:flex;align-items:center;gap:8px;margin:12px 0}
+.dot{width:10px;height:10px;border-radius:50%;background:#777}
+.dot.on{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:460px){.grid3{grid-template-columns:1fr}}
+.label{font-size:17px;font-weight:700}
+.value{font-variant-numeric:tabular-nums;font-size:20px;min-width:48px;text-align:right}
+button{
+  border:0;border-radius:14px;padding:13px 14px;font-size:15px;font-weight:700;
+  background:#263149;color:#fff;touch-action:manipulation
+}
+button.primary{width:100%;background:#2868d7}
+button.danger{background:var(--danger)}
+button.warn{background:#805b18}
+button.experimentalBtn{background:#563773}
+button:disabled{opacity:.42}
 input[type=range]{width:100%;margin:18px 0 8px;accent-color:var(--accent)}
-small{color:var(--muted);line-height:1.55}.log{white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#b8c1d1;max-height:170px;overflow:auto;background:#090b0f;padding:12px;border-radius:12px}
-.warn{border-left:3px solid #e4ad4d;padding-left:12px;color:#d9c69e}
+input[type=number], input[type=text], select{
+  width:100%;border:1px solid var(--line);border-radius:11px;background:#0c1017;
+  color:var(--text);font-size:16px;padding:11px 10px
+}
+.field label{display:block;color:var(--muted);font-size:12px;margin:0 0 5px}
+small,.small{color:var(--muted);line-height:1.55;font-size:12px}
+.warnText{border-left:3px solid var(--warn);padding-left:12px;color:#d9c69e}
+.expText{border-left:3px solid var(--experimental);padding-left:12px;color:#d8c3ef}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.log{
+  white-space:pre-wrap;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#b8c1d1;max-height:260px;overflow:auto;background:#090b0f;padding:12px;border-radius:12px
+}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#242b38;color:#cdd5e2;font-size:12px}
+.pill.exp{background:#3a2a4d;color:#e5d4f6}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+.checkbox{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:#c9d0dc}
+.checkbox input{margin-top:3px}
+.timer{font:700 34px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;padding:10px 0}
+.frame{overflow:auto;white-space:nowrap;background:#090b0f;border-radius:10px;padding:10px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
 </style>
 </head>
+
 <body>
 <main>
-<h1>FUNF / SOSEXY Controller</h1>
-<div class="sub">iPhone + Web Bluetooth 用・非公式コントローラー</div>
+<h1>FUNF / SOSEXY BLE Protocol Lab</h1>
+<div class="sub">iPhone + Bluefy向け / 通常制御 + 未知チャネル探索 + 時間指定テスト</div>
 
 <div class="card">
   <div class="status"><span id="dot" class="dot"></span><strong id="status">未接続</strong></div>
   <button id="connect" class="primary">Bluetooth 接続</button>
-  <small>SOSEXY で始まるBLE機器を選択します。公式FUNFアプリは先に切断してください。</small>
+  <div style="height:9px"></div>
+  <small>SOSEXYで始まるBLE機器を選択します。公式FUNFアプリは先に切断してください。</small>
 </div>
 
 <div class="card">
-  <div class="row"><span class="label">吸引</span><span id="suctionV" class="value">0</span></div>
+  <h2>既知の通常制御</h2>
+
+  <div class="row"><span class="label">吸引 <span class="pill mono">07/08</span></span><span id="suctionV" class="value">0</span></div>
   <input id="suction" type="range" min="0" max="100" value="0" disabled>
-</div>
 
-<div class="card">
-  <div class="row"><span class="label">振動</span><span id="vibrationV" class="value">0</span></div>
+  <hr>
+
+  <div class="row"><span class="label">振動 <span class="pill mono">01/02</span></span><span id="vibrationV" class="value">0</span></div>
   <input id="vibration" type="range" min="0" max="100" value="0" disabled>
-</div>
 
-<div class="card">
-  <div class="row"><span class="label">微弱電流</span><span id="electricV" class="value">0</span></div>
+  <hr>
+
+  <div class="row"><span class="label">微弱電流 <span class="pill mono">03/04</span></span><span id="electricV" class="value">0</span></div>
   <input id="electric" type="range" min="0" max="100" value="0" disabled>
-  <small class="warn">説明書の注意事項に従い、低強度から使用してください。医療機器使用中など禁忌に該当する場合は使用しないでください。</small>
+
+  <div class="warnText small">
+    通常機能でも微弱電流を含みます。説明書の禁忌事項に従ってください。
+  </div>
 </div>
 
-<button id="stop" class="danger" disabled>■ すべて停止</button>
+<div class="card experimental">
+  <h2>未知チャネル探索 <span class="pill exp">実験</span></h2>
+
+  <div class="expText small">
+    既知ペアは 01/02、03/04、07/08 です。05/06 および 08 以降を探索できます。
+    未知値が何を起動するかは未確認なので、探索時は装着せず、低い試験値・短時間で確認する前提です。
+    書き込み先は EE03 のみに固定し、AE00系OTAサービスにはアクセスしません。
+  </div>
+
+  <h3>自動探索</h3>
+  <div class="grid3">
+    <div class="field">
+      <label>開始基点</label>
+      <input id="scanStart" type="text" value="0x05">
+    </div>
+    <div class="field">
+      <label>終了基点</label>
+      <input id="scanEnd" type="text" value="0x20">
+    </div>
+    <div class="field">
+      <label>試験値 0〜10</label>
+      <input id="scanLevel" type="number" min="0" max="10" value="1">
+    </div>
+  </div>
+
+  <div style="height:10px"></div>
+  <div class="grid">
+    <div class="field">
+      <label>1候補の継続時間（ms）</label>
+      <input id="scanDwell" type="number" min="500" max="5000" step="100" value="1500">
+    </div>
+    <div class="field">
+      <label>基点の増分</label>
+      <select id="scanStep">
+        <option value="1" selected>+1（全基点）</option>
+        <option value="2">+2（ペア境界想定）</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="height:10px"></div>
+  <label class="checkbox"><input id="skipKnown" type="checkbox" checked>既知の基点 0x01 / 0x03 / 0x07 はスキップする</label>
+  <label class="checkbox"><input id="autoZero" type="checkbox" checked>各候補の後に同じペアへ値0を送り停止を試みる</label>
+
+  <div style="height:12px"></div>
+  <div class="grid">
+    <button id="scanOne" class="experimentalBtn" disabled>現在候補を1回試す</button>
+    <button id="scanAuto" class="experimentalBtn" disabled>自動探索開始</button>
+  </div>
+  <div style="height:9px"></div>
+  <button id="scanStop" class="warn" style="width:100%" disabled>探索停止</button>
+
+  <h3>現在の候補</h3>
+  <div class="row">
+    <div>
+      <div id="candidate" class="mono" style="font-size:22px">0x05 / 0x06</div>
+      <div id="scanProgress" class="small">待機中</div>
+    </div>
+    <button id="markRed" class="danger" disabled>赤LEDを記録</button>
+  </div>
+
+  <h3>候補を手動指定</h3>
+  <div class="grid3">
+    <div class="field">
+      <label>MODE1 / byte5</label>
+      <input id="manualA" type="text" value="0x05">
+    </div>
+    <div class="field">
+      <label>MODE2 / byte9</label>
+      <input id="manualB" type="text" value="0x06">
+    </div>
+    <div class="field">
+      <label>試験値 0〜10</label>
+      <input id="manualLevel" type="number" min="0" max="10" value="1">
+    </div>
+  </div>
+  <div style="height:10px"></div>
+  <div id="manualFrame" class="frame">フレーム:</div>
+  <div style="height:10px"></div>
+  <div class="grid">
+    <button id="manualOn" class="experimentalBtn" disabled>候補 ON</button>
+    <button id="manualOff" disabled>候補 OFF（値0）</button>
+  </div>
+</div>
+
+<div class="card experimental">
+  <h2>時間指定・候補モード</h2>
+
+  <div class="expText small">
+    時間指定は、このページ側のタイマーとして実装しています。現時点では「時分秒がBLEフレームに埋め込まれている」
+    ことを示す公開解析は確認できていません。開始時に候補フレームを送り、指定時間後に同じペアへ値0を送ります。
+  </div>
+
+  <div class="timer" id="timerDisplay">00:00:00</div>
+
+  <div class="grid3">
+    <div class="field">
+      <label>時</label><input id="hours" type="number" min="0" max="23" value="0">
+    </div>
+    <div class="field">
+      <label>分</label><input id="minutes" type="number" min="0" max="59" value="0">
+    </div>
+    <div class="field">
+      <label>秒</label><input id="seconds" type="number" min="0" max="59" value="10">
+    </div>
+  </div>
+
+  <div style="height:10px"></div>
+  <label class="checkbox">
+    <input id="keepAlive" type="checkbox" checked>
+    動作中は25秒ごとに同じ候補フレームを再送する（BLE接続維持用）
+  </label>
+  <label class="checkbox">
+    <input id="wakeLock" type="checkbox" checked>
+    対応ブラウザでは画面スリープを抑止する
+  </label>
+
+  <div style="height:12px"></div>
+  <div class="grid">
+    <button id="timedStart" class="experimentalBtn" disabled>時間指定で開始</button>
+    <button id="timedStop" class="warn" disabled>今すぐ候補OFF</button>
+  </div>
+
+  <div style="height:10px"></div>
+  <small>
+    iOSでBluefyをバックグラウンド化したり画面を閉じたりするとJavaScriptタイマーが停止・遅延する可能性があります。
+    時間終了による自動停止を唯一の安全手段にはしないでください。
+  </small>
+</div>
 
 <div class="card">
-  <div class="row"><strong>通信ログ</strong><button id="clear" style="padding:8px 11px;font-size:12px">消去</button></div>
-  <div id="log" class="log">待機中</div>
+  <h2>停止</h2>
+  <button id="stop" class="danger" style="width:100%" disabled>■ 既知機能 + 最後の候補を停止</button>
+  <div style="height:10px"></div>
+  <button id="panic" class="danger" style="width:100%" disabled>■ 停止を送信してBluetooth切断</button>
 </div>
 
-<small>
-このページはコミュニティが解析したSOSEXY BLEプロトコルに基づきます。FUNF公式ソフトウェアではありません。
-AE00系のOTAサービスにはアクセスしません。
-</small>
+<div class="card">
+  <div class="row">
+    <h2 style="margin:0">観測ログ</h2>
+    <button id="clear" style="padding:8px 11px;font-size:12px">消去</button>
+  </div>
+  <div id="log" class="log">待機中</div>
+
+  <h3>赤LED候補</h3>
+  <div id="redCandidates" class="log" style="max-height:120px">まだ記録されていません</div>
+  <div style="height:9px"></div>
+  <button id="copyReport" style="width:100%">ログと候補をコピー</button>
+</div>
+
+<div class="small">
+  非公式の実験用ページです。コミュニティが解析したSOSEXY制御フレームを基礎にしています。
+  未知チャネルの意味は確認されていません。
+</div>
 </main>
 
 <script>
 'use strict';
 
-// Community reverse-engineered SOSEXY GATT layout.
 const SERVICE_UUID = '0000ee01-0000-1000-8000-00805f9b34fb';
 const WRITE_UUID   = '0000ee03-0000-1000-8000-00805f9b34fb';
 const NOTIFY_UUID  = '0000ee02-0000-1000-8000-00805f9b34fb';
@@ -74,7 +266,18 @@ let writeChar = null;
 let notifyChar = null;
 let writeQueue = Promise.resolve();
 
-const state = { suction: 0, vibration: 0, electric: 0 };
+let lastUnknownPair = null;
+let currentCandidateBase = 0x05;
+let scanAbort = false;
+let scanRunning = false;
+let redObservations = [];
+
+let timedInterval = null;
+let timedKeepAlive = null;
+let timedEndsAt = null;
+let screenWakeLock = null;
+
+const state = { suction:0, vibration:0, electric:0 };
 const channels = {
   suction:   [0x07, 0x08],
   vibration: [0x01, 0x02],
@@ -82,141 +285,490 @@ const channels = {
 };
 
 const $ = id => document.getElementById(id);
-const log = msg => {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hex2 = n => '0x' + Number(n).toString(16).toUpperCase().padStart(2,'0');
+
+function log(msg){
   const t = new Date().toLocaleTimeString();
   $('log').textContent = `[${t}] ${msg}\n` + $('log').textContent;
-};
-
-function setConnected(on) {
-  $('status').textContent = on ? `接続済み: ${device?.name || 'SOSEXY'}` : '未接続';
-  $('dot').classList.toggle('on', on);
-  ['suction','vibration','electric','stop'].forEach(id => $(id).disabled = !on);
-  $('connect').textContent = on ? '再接続' : 'Bluetooth 接続';
 }
 
-function frame(a, b, level) {
-  level = Math.max(0, Math.min(100, Number(level) | 0));
+function bytesHex(bytes){
+  return [...bytes].map(x => x.toString(16).padStart(2,'0')).join(' ');
+}
+
+function parseHexByte(text){
+  const s = String(text).trim();
+  let n;
+  if (/^0x[0-9a-f]+$/i.test(s)) n = parseInt(s.slice(2),16);
+  else if (/^[0-9]+$/.test(s)) n = parseInt(s,10);
+  else if (/^[0-9a-f]+$/i.test(s)) n = parseInt(s,16);
+  else throw new Error(`不正なチャネル値: ${text}`);
+  if (!Number.isInteger(n) || n < 0 || n > 255) throw new Error(`0x00〜0xFFで指定してください: ${text}`);
+  return n;
+}
+
+function clamp(n,min,max){ return Math.max(min, Math.min(max, Number(n)||0)); }
+
+function frame(a,b,level){
+  level = clamp(level,0,100) | 0;
   return new Uint8Array([
     0x01,0x01,0x00,0x02,0x00,
-    a,0x11,level,0x00,b,0x11,0x01
+    a & 0xff,
+    0x11,
+    level & 0xff,
+    0x00,
+    b & 0xff,
+    0x11,
+    0x01
   ]);
 }
 
-// Some community implementations use this handshake after GATT connection.
-// Failure is deliberately non-fatal because another implementation controls
-// the same model without an explicit initialization write.
 const INIT = new Uint8Array([0x01,0x01,0x00,0x01,0x00,0xC8,0x11,0x01]);
 
-async function rawWrite(bytes) {
+function setConnected(on){
+  $('status').textContent = on ? `接続済み: ${device?.name || 'SOSEXY'}` : '未接続';
+  $('dot').classList.toggle('on',on);
+  [
+    'suction','vibration','electric','stop','panic',
+    'scanOne','scanAuto','scanStop','markRed',
+    'manualOn','manualOff','timedStart','timedStop'
+  ].forEach(id => $(id).disabled = !on);
+  $('connect').textContent = on ? '再接続' : 'Bluetooth 接続';
+}
+
+async function rawWrite(bytes){
   if (!writeChar || !device?.gatt?.connected) throw new Error('BLE未接続');
-  try {
-    if (typeof writeChar.writeValueWithResponse === 'function')
+  try{
+    if (typeof writeChar.writeValueWithResponse === 'function'){
       await writeChar.writeValueWithResponse(bytes);
-    else
+    }else{
       await writeChar.writeValue(bytes);
-  } catch (e) {
-    if (typeof writeChar.writeValueWithoutResponse === 'function')
+    }
+  }catch(e){
+    if (typeof writeChar.writeValueWithoutResponse === 'function'){
       await writeChar.writeValueWithoutResponse(bytes);
-    else throw e;
+    }else{
+      throw e;
+    }
   }
 }
 
-function queuedWrite(bytes) {
-  writeQueue = writeQueue.catch(()=>{}).then(() => rawWrite(bytes));
+function queuedWrite(bytes, label='WRITE'){
+  const copy = new Uint8Array(bytes);
+  writeQueue = writeQueue.catch(()=>{}).then(async()=>{
+    await rawWrite(copy);
+    log(`${label}: ${bytesHex(copy)}`);
+  });
   return writeQueue;
 }
 
-async function connectBLE() {
-  if (!navigator.bluetooth) {
-    throw new Error('このブラウザはWeb Bluetoothを提供していません。iPhoneではBluefy等のWeb Bluetooth対応ブラウザで開いてください。');
+async function connectBLE(){
+  if (!navigator.bluetooth){
+    throw new Error('Web Bluetoothが利用できません。iPhoneではBluefy等のWeb Bluetooth対応ブラウザでHTTPSページを開いてください。');
   }
 
-  if (!device) {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: 'SOSEXY' }],
-      optionalServices: [SERVICE_UUID]
-    });
-    device.addEventListener('gattserverdisconnected', () => {
-      writeChar = null; notifyChar = null; setConnected(false); log('BLE切断');
-    });
+  if (device?.gatt?.connected){
+    try{ device.gatt.disconnect(); }catch(_){}
+    await sleep(250);
   }
 
-  log('GATTへ接続中…');
+  device = await navigator.bluetooth.requestDevice({
+    filters:[{namePrefix:'SOSEXY'}],
+    optionalServices:[SERVICE_UUID]
+  });
+
+  device.addEventListener('gattserverdisconnected',()=>{
+    writeChar=null;
+    notifyChar=null;
+    setConnected(false);
+    log('BLE切断');
+  });
+
+  log('GATTへ接続中...');
   const server = await device.gatt.connect();
   const service = await server.getPrimaryService(SERVICE_UUID);
   writeChar = await service.getCharacteristic(WRITE_UUID);
 
-  try {
+  try{
     notifyChar = await service.getCharacteristic(NOTIFY_UUID);
-    notifyChar.addEventListener('characteristicvaluechanged', e => {
-      const v = new Uint8Array(e.target.value.buffer);
-      log('NOTIFY: ' + [...v].map(x=>x.toString(16).padStart(2,'0')).join(' '));
+    notifyChar.addEventListener('characteristicvaluechanged',e=>{
+      const view = e.target.value;
+      const v = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+      log('NOTIFY: ' + bytesHex(v));
     });
     await notifyChar.startNotifications();
     log('NOTIFY開始');
-  } catch (e) {
+  }catch(e){
     log('NOTIFY開始を省略: ' + e.message);
   }
 
-  // Best-effort handshake.
-  try { await rawWrite(INIT); log('初期化フレーム送信'); }
-  catch(e) { log('初期化フレーム応答なし（継続）: ' + e.message); }
+  try{
+    await rawWrite(INIT);
+    log('INIT: ' + bytesHex(INIT));
+  }catch(e){
+    log('INIT応答なし（継続）: ' + e.message);
+  }
 
   setConnected(true);
   log(`接続完了: ${device.name || 'SOSEXY'}`);
 }
 
-async function setLevel(kind, level) {
+async function setLevel(kind,level){
   const [a,b] = channels[kind];
-  level = Math.max(0, Math.min(100, Number(level) | 0));
-  state[kind] = level;
-  $(kind + 'V').textContent = level;
-  await queuedWrite(frame(a,b,level));
+  level = clamp(level,0,100)|0;
+  state[kind]=level;
+  $(kind+'V').textContent=level;
+  await queuedWrite(frame(a,b,level), `${kind} ${level}`);
 }
 
-function bindSlider(kind) {
-  const el = $(kind);
-  let timer = null;
-  el.addEventListener('input', () => {
-    const value = Number(el.value);
-    $(kind + 'V').textContent = value;
-    state[kind] = value;
+function bindSlider(kind){
+  const el=$(kind);
+  let timer=null;
+  el.addEventListener('input',()=>{
+    const value=Number(el.value);
+    $(kind+'V').textContent=value;
+    state[kind]=value;
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      setLevel(kind, value).then(()=>log(`${kind}: ${value}`))
-                           .catch(e=>log(`送信失敗: ${e.message}`));
-    }, 70);
+    timer=setTimeout(()=>{
+      setLevel(kind,value).catch(e=>log('送信失敗: '+e.message));
+    },70);
   });
-  // Ensure final finger position is sent.
-  el.addEventListener('change', () => {
+  el.addEventListener('change',()=>{
     clearTimeout(timer);
-    setLevel(kind, Number(el.value)).catch(e=>log(`送信失敗: ${e.message}`));
+    setLevel(kind,Number(el.value)).catch(e=>log('送信失敗: '+e.message));
   });
 }
 
-async function stopAll() {
-  // Protocol controls each function independently, so explicitly zero all three.
-  await setLevel('suction', 0);
-  await setLevel('vibration', 0);
-  await setLevel('electric', 0);
-  ['suction','vibration','electric'].forEach(k => { $(k).value = 0; $(k+'V').textContent = '0'; });
-  log('すべて停止');
+function updateManualPreview(){
+  try{
+    const a=parseHexByte($('manualA').value);
+    const b=parseHexByte($('manualB').value);
+    const level=clamp($('manualLevel').value,0,10)|0;
+    $('manualFrame').textContent='フレーム: '+bytesHex(frame(a,b,level));
+  }catch(e){
+    $('manualFrame').textContent='入力エラー: '+e.message;
+  }
 }
 
-$('connect').addEventListener('click', async () => {
-  try { await connectBLE(); }
-  catch(e) { setConnected(false); log('接続失敗: ' + e.message); alert('接続できませんでした。\n\n' + e.message); }
+function setCandidate(base){
+  base &= 0xff;
+  currentCandidateBase=base;
+  const b=(base+1)&0xff;
+  $('candidate').textContent=`${hex2(base)} / ${hex2(b)}`;
+  $('manualA').value=hex2(base);
+  $('manualB').value=hex2(b);
+  updateManualPreview();
+}
+
+async function sendUnknown(a,b,level,label='UNKNOWN'){
+  level=clamp(level,0,10)|0;
+  lastUnknownPair={a,b};
+  await queuedWrite(frame(a,b,level),`${label} ${hex2(a)}/${hex2(b)} value=${level}`);
+}
+
+function isKnownBase(base){
+  return [0x01,0x03,0x07].includes(base);
+}
+
+async function probeBase(base){
+  const a=base & 0xff;
+  const b=(a+1)&0xff;
+  const level=clamp($('scanLevel').value,0,10)|0;
+  const dwell=clamp($('scanDwell').value,500,5000)|0;
+
+  setCandidate(a);
+  $('scanProgress').textContent=`試行中: ${hex2(a)}/${hex2(b)} value=${level}`;
+  await sendUnknown(a,b,level,'PROBE ON');
+
+  const slices=Math.max(1,Math.ceil(dwell/100));
+  for(let i=0;i<slices;i++){
+    if(scanAbort) break;
+    await sleep(Math.min(100,dwell-i*100));
+  }
+
+  if($('autoZero').checked){
+    await sendUnknown(a,b,0,'PROBE OFF');
+  }
+
+  $('scanProgress').textContent=`試行完了: ${hex2(a)}/${hex2(b)}`;
+}
+
+async function scanOne(){
+  scanAbort=false;
+  await probeBase(currentCandidateBase);
+}
+
+async function autoScan(){
+  if(scanRunning) return;
+
+  let start=parseHexByte($('scanStart').value);
+  let end=parseHexByte($('scanEnd').value);
+  const step=clamp($('scanStep').value,1,2)|0;
+  if(end<start) [start,end]=[end,start];
+
+  scanRunning=true;
+  scanAbort=false;
+  $('scanAuto').disabled=true;
+
+  try{
+    for(let base=start;base<=end;base+=step){
+      if(scanAbort) break;
+      if($('skipKnown').checked && isKnownBase(base)){
+        log(`SCAN SKIP known base ${hex2(base)}`);
+        continue;
+      }
+      await probeBase(base);
+      if(scanAbort) break;
+      await sleep(250);
+    }
+  }finally{
+    scanRunning=false;
+    $('scanAuto').disabled=!device?.gatt?.connected;
+    $('scanProgress').textContent=scanAbort?'探索を停止しました':'探索完了';
+  }
+}
+
+async function stopScan(){
+  scanAbort=true;
+  scanRunning=false;
+  if(lastUnknownPair){
+    await sendUnknown(lastUnknownPair.a,lastUnknownPair.b,0,'SCAN STOP');
+  }
+  $('scanProgress').textContent='探索停止';
+}
+
+async function manualOn(){
+  const a=parseHexByte($('manualA').value);
+  const b=parseHexByte($('manualB').value);
+  const level=clamp($('manualLevel').value,0,10)|0;
+  setCandidate(a);
+  $('manualB').value=hex2(b); // preserve explicit B
+  updateManualPreview();
+  await sendUnknown(a,b,level,'MANUAL ON');
+}
+
+async function manualOff(){
+  const a=parseHexByte($('manualA').value);
+  const b=parseHexByte($('manualB').value);
+  await sendUnknown(a,b,0,'MANUAL OFF');
+}
+
+function markRed(){
+  let a,b;
+  try{
+    a=parseHexByte($('manualA').value);
+    b=parseHexByte($('manualB').value);
+  }catch(_){
+    a=currentCandidateBase;
+    b=(a+1)&0xff;
+  }
+  const record={
+    time:new Date().toISOString(),
+    a,b,
+    value:clamp($('manualLevel').value,0,10)|0
+  };
+  redObservations.push(record);
+  $('redCandidates').textContent=redObservations.map((r,i)=>
+    `${i+1}. ${hex2(r.a)}/${hex2(r.b)} value=${r.value}  ${r.time}`
+  ).join('\n');
+  log(`★ 赤LED観測: ${hex2(a)}/${hex2(b)} value=${record.value}`);
+}
+
+function totalSeconds(){
+  const h=clamp($('hours').value,0,23)|0;
+  const m=clamp($('minutes').value,0,59)|0;
+  const s=clamp($('seconds').value,0,59)|0;
+  return h*3600+m*60+s;
+}
+
+function formatDuration(sec){
+  sec=Math.max(0,Math.floor(sec));
+  const h=Math.floor(sec/3600);
+  const m=Math.floor((sec%3600)/60);
+  const s=sec%60;
+  return [h,m,s].map(x=>String(x).padStart(2,'0')).join(':');
+}
+
+function updateTimerFromInputs(){
+  if(timedEndsAt) return;
+  $('timerDisplay').textContent=formatDuration(totalSeconds());
+}
+
+async function acquireWakeLock(){
+  if(!$('wakeLock').checked || !('wakeLock' in navigator)) return;
+  try{
+    screenWakeLock=await navigator.wakeLock.request('screen');
+    log('画面Wake Lock取得');
+  }catch(e){
+    log('Wake Lock利用不可: '+e.message);
+  }
+}
+
+async function releaseWakeLock(){
+  try{
+    if(screenWakeLock) await screenWakeLock.release();
+  }catch(_){}
+  screenWakeLock=null;
+}
+
+async function timedStart(){
+  const seconds=totalSeconds();
+  if(seconds<=0) throw new Error('時間を1秒以上にしてください');
+
+  const a=parseHexByte($('manualA').value);
+  const b=parseHexByte($('manualB').value);
+  const level=clamp($('manualLevel').value,0,10)|0;
+
+  await timedStop(false);
+  await acquireWakeLock();
+
+  await sendUnknown(a,b,level,'TIMED ON');
+  timedEndsAt=Date.now()+seconds*1000;
+  $('timedStart').disabled=true;
+
+  timedInterval=setInterval(async()=>{
+    const remain=Math.max(0,Math.ceil((timedEndsAt-Date.now())/1000));
+    $('timerDisplay').textContent=formatDuration(remain);
+    if(remain<=0){
+      await timedStop(true);
+    }
+  },250);
+
+  if($('keepAlive').checked){
+    timedKeepAlive=setInterval(()=>{
+      if(timedEndsAt && Date.now()<timedEndsAt){
+        sendUnknown(a,b,level,'TIMED KEEPALIVE').catch(e=>log('KEEPALIVE失敗: '+e.message));
+      }
+    },25000);
+  }
+
+  $('timerDisplay').textContent=formatDuration(seconds);
+  log(`時間指定開始 ${hex2(a)}/${hex2(b)} value=${level} duration=${formatDuration(seconds)}`);
+}
+
+async function timedStop(sendOff=true){
+  if(timedInterval){ clearInterval(timedInterval); timedInterval=null; }
+  if(timedKeepAlive){ clearInterval(timedKeepAlive); timedKeepAlive=null; }
+
+  const hadTimer=timedEndsAt!==null;
+  timedEndsAt=null;
+
+  if(sendOff && lastUnknownPair && device?.gatt?.connected){
+    try{
+      await sendUnknown(lastUnknownPair.a,lastUnknownPair.b,0,'TIMED OFF');
+    }catch(e){
+      log('TIMED OFF失敗: '+e.message);
+    }
+  }
+
+  await releaseWakeLock();
+  $('timedStart').disabled=!device?.gatt?.connected;
+  updateTimerFromInputs();
+  if(hadTimer) log('時間指定モード終了');
+}
+
+async function stopAll(){
+  scanAbort=true;
+  await timedStop(false);
+
+  const jobs=[];
+  if(lastUnknownPair) jobs.push(sendUnknown(lastUnknownPair.a,lastUnknownPair.b,0,'UNKNOWN OFF'));
+  jobs.push(setLevel('suction',0));
+  jobs.push(setLevel('vibration',0));
+  jobs.push(setLevel('electric',0));
+
+  for(const job of jobs){
+    try{ await job; }catch(e){ log('停止送信失敗: '+e.message); }
+  }
+
+  ['suction','vibration','electric'].forEach(k=>{
+    $(k).value=0;
+    $(k+'V').textContent='0';
+  });
+  log('既知機能 + 最後の候補へ停止送信');
+}
+
+async function panicDisconnect(){
+  try{ await stopAll(); }catch(_){}
+  try{
+    if(device?.gatt?.connected) device.gatt.disconnect();
+  }catch(_){}
+  setConnected(false);
+  log('停止送信後にBluetooth切断');
+}
+
+async function copyReport(){
+  const report=[
+    'FUNF / SOSEXY BLE Protocol Lab',
+    `Generated: ${new Date().toISOString()}`,
+    '',
+    '=== RED LED CANDIDATES ===',
+    redObservations.length
+      ? redObservations.map((r,i)=>`${i+1}. ${hex2(r.a)}/${hex2(r.b)} value=${r.value} ${r.time}`).join('\n')
+      : '(none)',
+    '',
+    '=== LOG ===',
+    $('log').textContent
+  ].join('\n');
+
+  try{
+    await navigator.clipboard.writeText(report);
+    log('レポートをクリップボードへコピー');
+  }catch(e){
+    log('コピー失敗: '+e.message);
+  }
+}
+
+$('connect').addEventListener('click',async()=>{
+  try{ await connectBLE(); }
+  catch(e){
+    setConnected(false);
+    log('接続失敗: '+e.message);
+    alert('接続できませんでした。\n\n'+e.message);
+  }
 });
 
-$('stop').addEventListener('click', () => stopAll().catch(e=>log('停止失敗: '+e.message)));
-$('clear').addEventListener('click', () => $('log').textContent = '');
+$('scanOne').addEventListener('click',()=>scanOne().catch(e=>log('探索失敗: '+e.message)));
+$('scanAuto').addEventListener('click',()=>autoScan().catch(e=>log('探索失敗: '+e.message)));
+$('scanStop').addEventListener('click',()=>stopScan().catch(e=>log('停止失敗: '+e.message)));
+$('markRed').addEventListener('click',markRed);
+
+$('manualOn').addEventListener('click',()=>manualOn().catch(e=>log('候補ON失敗: '+e.message)));
+$('manualOff').addEventListener('click',()=>manualOff().catch(e=>log('候補OFF失敗: '+e.message)));
+
+$('timedStart').addEventListener('click',()=>timedStart().catch(e=>{
+  log('時間指定開始失敗: '+e.message);
+  alert(e.message);
+}));
+$('timedStop').addEventListener('click',()=>timedStop(true).catch(e=>log('時間指定停止失敗: '+e.message)));
+
+$('stop').addEventListener('click',()=>stopAll().catch(e=>log('停止失敗: '+e.message)));
+$('panic').addEventListener('click',()=>panicDisconnect().catch(e=>log('緊急停止失敗: '+e.message)));
+$('clear').addEventListener('click',()=>$('log').textContent='');
+$('copyReport').addEventListener('click',copyReport);
+
+['manualA','manualB','manualLevel'].forEach(id=>$(id).addEventListener('input',updateManualPreview));
+['hours','minutes','seconds'].forEach(id=>$(id).addEventListener('input',updateTimerFromInputs));
 ['suction','vibration','electric'].forEach(bindSlider);
 
-window.addEventListener('pagehide', () => {
-  // Best effort only: browsers may suspend before asynchronous BLE writes complete.
-  if (device?.gatt?.connected) stopAll().catch(()=>{});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible' && timedEndsAt){
+    log('警告: ページがバックグラウンドになりました。タイマー停止が遅延する可能性があります。');
+  }
 });
 
+window.addEventListener('pagehide',()=>{
+  scanAbort=true;
+  // Best effort only. iOS may suspend before these asynchronous writes complete.
+  if(device?.gatt?.connected){
+    stopAll().catch(()=>{});
+  }
+});
+
+setCandidate(0x05);
+updateManualPreview();
+updateTimerFromInputs();
 setConnected(false);
 </script>
 </body>
