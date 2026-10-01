@@ -1,122 +1,885 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>FUNF / SOSEXY Evaluator v3</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0d12">
+<title>FUNF / SOSEXY Controller v4</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0d12;--card:#151922;--line:#2a3140;--txt:#f4f6fa;--muted:#9da7b8;--ok:#4dd59b;--exp:#c58cff;--warn:#e4ad4d;--danger:#ff5d68}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}main{max-width:720px;margin:auto;padding:18px 16px 40px}h1{font-size:22px;margin:4px 0}.sub,small,.small{color:var(--muted);font-size:12px;line-height:1.55}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0}.exp{border-color:#51386e}.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.grid2,.grid3,.grid4{display:grid;gap:10px}.grid2{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:repeat(3,1fr)}.grid4{grid-template-columns:repeat(4,1fr)}@media(max-width:560px){.grid4{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.grid2,.grid3{grid-template-columns:1fr}}button{border:0;border-radius:12px;padding:12px;font-weight:700;background:#263149;color:#fff}button.primary{width:100%;background:#2868d7}button.expbtn{background:#563773}button.warn{background:#805b18}button.danger{background:var(--danger)}button:disabled{opacity:.4}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#0c1017;color:#fff;padding:9px;font-size:15px}textarea{min-height:68px}.field label{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.dot{width:10px;height:10px;border-radius:50%;background:#777;display:inline-block}.dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.frame,.log{background:#090b0f;border-radius:10px;padding:10px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}.log{white-space:pre-wrap;max-height:260px;overflow:auto;color:#b8c1d1}.frame{white-space:nowrap;overflow:auto}.metric{background:#0d1118;border:1px solid var(--line);border-radius:10px;padding:9px}.metric b{display:block;font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace}.big{font:700 36px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;padding:8px}.box{border-left:3px solid var(--exp);padding-left:10px;color:#d8c3ef}.warnbox{border-left:3px solid var(--warn);padding-left:10px;color:#dccaa6}.pill{display:inline-block;background:#3a2a4d;color:#e5d4f6;border-radius:999px;padding:3px 7px;font-size:11px}.check{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:#c9d0dc;margin:8px 0}.check input{width:auto;margin-top:2px}hr{border:0;border-top:1px solid var(--line);margin:16px 0}a{color:#9ec0ff}
+:root{
+  color-scheme:dark;
+  --bg:#0b0d12;--card:#151922;--card2:#10141c;--line:#2a3140;
+  --text:#f4f6fa;--muted:#98a3b4;--accent:#77a8ff;--ok:#4dd59b;
+  --warn:#e4ad4d;--danger:#ff5d68;--violet:#bd89ff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Noto Sans JP",sans-serif}
+main{max-width:760px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(34px + env(safe-area-inset-bottom))}
+h1{font-size:23px;margin:4px 0 5px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+small,.small{font-size:12px;line-height:1.6;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;margin:13px 0}
+.card.special{border-color:#50396d}
+.card.dangerCard{border-color:#60343a}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:600px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:460px){.grid3,.grid2{grid-template-columns:1fr}}
+button{
+  border:0;border-radius:13px;padding:13px 12px;font-size:14px;font-weight:700;
+  color:#fff;background:#263149;touch-action:manipulation
+}
+button.primary{background:#2868d7;width:100%}
+button.special{background:#563773}
+button.warn{background:#805b18}
+button.danger{background:var(--danger)}
+button:disabled{opacity:.4}
+input[type=range]{width:100%;margin:15px 0 7px;accent-color:var(--accent)}
+input[type=number],input[type=text],select,textarea{
+  width:100%;border:1px solid var(--line);border-radius:11px;background:#0c1017;
+  color:var(--text);font-size:16px;padding:10px
+}
+textarea{min-height:82px;resize:vertical}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.check{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#c7cfdb;margin:8px 0}
+.check input{margin-top:3px}
+.status{display:flex;align-items:center;gap:8px;margin:11px 0}
+.dot{width:10px;height:10px;border-radius:50%;background:#707783}
+.dot.on{background:var(--ok);box-shadow:0 0 11px var(--ok)}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#242b38;color:#d2d8e2;font-size:11px}
+.pill.violet{background:#39294c;color:#e4d4f5}
+.pill.ok{background:#183a30;color:#9be7c7}
+.value{min-width:50px;text-align:right;font:700 20px ui-monospace,SFMono-Regular,Menlo,monospace}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.frame,.log{
+  background:#090b0f;border-radius:11px;padding:11px;
+  font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:#bcc6d7
+}
+.frame{overflow:auto;white-space:nowrap}
+.log{white-space:pre-wrap;max-height:270px;overflow:auto}
+.notice{border-left:3px solid var(--warn);padding-left:11px;color:#dbcaa7}
+.expNotice{border-left:3px solid var(--violet);padding-left:11px;color:#d9c7ee}
+.metric{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.metric b{display:block;font:700 21px ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:2px}
+.bigtime{font:700 36px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;padding:8px 0}
+.patterns{display:flex;flex-wrap:wrap;gap:7px}
+.pattern{
+  border:1px solid var(--line);background:#10151e;color:#e9edf3;border-radius:999px;
+  padding:9px 11px;font-size:13px;font-weight:700
+}
+.pattern[data-b="1"]{border-color:#536d95}
+.pattern[data-b="2"],.pattern[data-b="3"],.pattern[data-b="6"],.pattern[data-b="7"]{border-color:#725d38}
+.pattern[data-b="8"]{border-color:#653d72}
+hr{border:0;border-top:1px solid var(--line);margin:17px 0}
+details{background:#10141c;border:1px solid var(--line);border-radius:13px;padding:12px;margin-top:12px}
+summary{cursor:pointer;font-weight:700}
+kbd{background:#222b3a;border:1px solid #3b4657;border-radius:5px;padding:1px 5px}
 </style>
 </head>
-<body><main>
-<h1>FUNF / SOSEXY Protocol Evaluator v3</h1>
-<div class="sub">実機観測「0x0A / 0x0B は Payload A=0/1 のどちらでも約1秒だけ振動」を前提に、ワンショット性、再トリガー周期、Payload B の意味を切り分ける評価版です。</div>
+<body>
+<main>
+<h1>FUNF / SOSEXY Controller v4</h1>
+<div class="small">通常3機能 + 0A/0B 特殊モード + 時間指定シーケンス。iPhone / Bluefy / GitHub Pages向け。</div>
 
 <div class="card">
-  <div class="row"><div><span id="dot" class="dot"></span> <b id="status">未接続</b></div></div>
-  <div style="height:10px"></div><button id="connect" class="primary">Bluetooth 接続</button>
-  <small>iPhoneではBluefy等のWeb Bluetooth対応ブラウザでHTTPSページを開いてください。</small>
+  <div class="status"><span id="dot" class="dot"></span><strong id="status">未接続</strong></div>
+  <button id="connect" class="primary">Bluetooth 接続</button>
+  <div style="height:8px"></div>
+  <small>SOSEXYで始まるBLE機器を選択します。別アプリが接続している場合は先に切断してください。</small>
 </div>
 
-<div class="card exp">
-  <h2>評価対象 <span class="pill">0A / 0B</span></h2>
-  <div class="box small">v3では byte7 を「強度」と断定せず <b>Payload A</b>、byte11 を <b>Payload B</b> と呼びます。0A/0Bは公開OSSで既知機能として解析されていないため、実機観測を優先します。</div>
-  <div style="height:10px"></div>
-  <div class="grid4">
-    <div class="field"><label>MODE1 / byte5</label><input id="modeA" value="0x0A"></div>
-    <div class="field"><label>Payload A / byte7</label><input id="payloadA" type="number" min="0" max="255" value="1"></div>
-    <div class="field"><label>MODE2 / byte9</label><input id="modeB" value="0x0B"></div>
-    <div class="field"><label>Payload B / byte11</label><input id="payloadB" type="number" min="0" max="255" value="1"></div>
+<div class="card">
+  <div class="row">
+    <h2 style="margin:0">通常制御</h2>
+    <span class="pill ok">v1機能</span>
   </div>
-  <div style="height:10px"></div><div id="preview" class="frame"></div>
-  <h3>プリセット</h3>
-  <div class="grid4"><button data-p="0,1">A=0 / B=1</button><button data-p="1,1">A=1 / B=1</button><button data-p="1,0">A=1 / B=0</button><button data-p="1,2">A=1 / B=2</button></div>
+
+  <h3>吸引 <span class="pill mono">07 / 08</span></h3>
+  <div class="row"><span class="small">強度</span><span id="suctionValue" class="value">0</span></div>
+  <input id="suction" type="range" min="0" max="100" value="0" disabled>
+
+  <hr>
+
+  <h3>振動 <span class="pill mono">01 / 02</span></h3>
+  <div class="row"><span class="small">強度</span><span id="vibrationValue" class="value">0</span></div>
+  <input id="vibration" type="range" min="0" max="100" value="0" disabled>
+
+  <hr>
+
+  <h3>微弱電流 <span class="pill mono">03 / 04</span></h3>
+  <div class="row"><span class="small">強度</span><span id="electricValue" class="value">0</span></div>
+  <input id="electric" type="range" min="0" max="100" value="0" disabled>
+
+  <div style="height:8px"></div>
+  <label class="check">
+    <input id="normalKeepAlive" type="checkbox" checked>
+    通常機能が0以外の間は25秒ごとに現在値を再送する
+  </label>
+
+  <div class="notice small">
+    微弱電流を使用する場合は製品説明書の禁忌事項に従ってください。
+  </div>
 </div>
 
-<div class="card exp">
-  <h2>Test 1: ワンショット持続時間</h2>
-  <div class="small">フレームを1回だけ送信します。振動または赤LEDが終わった瞬間に「終了を観測」を押すと、手動観測時間を記録します。</div>
-  <div id="shotClock" class="big">0.000 s</div>
-  <div class="grid2"><button id="shotStart" class="expbtn" disabled>1回送信</button><button id="shotEnd" disabled>終了を観測</button></div>
+<div class="card special">
+  <div class="row">
+    <h2 style="margin:0">失控モード / 特殊シーケンス</h2>
+    <span class="pill violet">実機解析</span>
+  </div>
+
+  <div class="expNotice small" style="margin-top:12px">
+    現在の実機観測では <span class="mono">0A / 0B</span> は約1秒のワンショットです。
+    Payload B=1は振動、2/3/6/7は吸引、8は赤LEDのみでアクチュエーター動作なしを確認しています。
+    約500msで再送すると赤LEDが途切れず、B=1では振動が継続しました。
+  </div>
+
+  <h3>動作パターン</h3>
+  <div class="patterns">
+    <button class="pattern" data-b="1">B1 振動</button>
+    <button class="pattern" data-b="2">B2 吸引</button>
+    <button class="pattern" data-b="3">B3 吸引</button>
+    <button class="pattern" data-b="6">B6 吸引</button>
+    <button class="pattern" data-b="7">B7 吸引</button>
+    <button class="pattern" data-b="8">B8 休止 / 赤</button>
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="grid3">
+    <div class="field">
+      <label>Payload A</label>
+      <select id="payloadA">
+        <option value="1" selected>1</option>
+        <option value="0">0</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>選択中の Payload B</label>
+      <input id="payloadB" type="number" min="0" max="255" value="1">
+    </div>
+    <div class="field">
+      <label>ワンショット</label>
+      <button id="singleSpecial" class="special" style="width:100%" disabled>1回送信</button>
+    </div>
+  </div>
+
   <div style="height:10px"></div>
-  <div class="grid3"><div class="metric"><small>直近</small><b id="shotLast">-</b></div><div class="metric"><small>平均</small><b id="shotAvg">-</b></div><div class="metric"><small>回数</small><b id="shotN">0</b></div></div>
+  <div id="specialFrame" class="frame"></div>
+
+  <h3>シーケンス</h3>
+  <div class="field">
+    <label>Payload B列。カンマ、空白、→で区切れます</label>
+    <input id="sequence" type="text" value="1,1,2,2,3,8,6,7">
+  </div>
+
+  <div style="height:8px"></div>
+  <div class="patterns">
+    <button class="pattern" data-add="1">+ 振動1</button>
+    <button class="pattern" data-add="2">+ 吸引2</button>
+    <button class="pattern" data-add="3">+ 吸引3</button>
+    <button class="pattern" data-add="6">+ 吸引6</button>
+    <button class="pattern" data-add="7">+ 吸引7</button>
+    <button class="pattern" data-add="8">+ 休止8</button>
+    <button id="clearSequence" class="pattern">クリア</button>
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="grid3">
+    <div class="field">
+      <label>送信間隔 (ms)</label>
+      <input id="specialInterval" type="number" min="150" max="5000" step="10" value="500">
+    </div>
+    <div class="field">
+      <label>動作順</label>
+      <select id="sequenceMode">
+        <option value="loop" selected>順番にループ</option>
+        <option value="random">ランダム</option>
+        <option value="single">1巡して終了</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>終了時</label>
+      <select id="endBehavior">
+        <option value="known-stop" selected>既知3機能へ0を送る</option>
+        <option value="natural">再送停止のみ</option>
+        <option value="disconnect">既知停止 + 切断</option>
+      </select>
+    </div>
+  </div>
+
+  <h3>継続時間</h3>
+  <div class="grid3">
+    <div class="field"><label>時</label><input id="hours" type="number" min="0" max="23" value="0"></div>
+    <div class="field"><label>分</label><input id="minutes" type="number" min="0" max="59" value="0"></div>
+    <div class="field"><label>秒</label><input id="seconds" type="number" min="0" max="59" value="30"></div>
+  </div>
+
+  <div class="bigtime" id="countdown">00:00:30</div>
+
+  <label class="check">
+    <input id="useWakeLock" type="checkbox" checked>
+    対応ブラウザでは実行中の画面スリープを抑止する
+  </label>
+
+  <div class="grid2">
+    <button id="specialStart" class="special" disabled>シーケンス開始</button>
+    <button id="specialStop" class="warn" disabled>シーケンス停止</button>
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="grid4">
+    <div class="metric"><span class="small">送信回数</span><b id="txCount">0</b></div>
+    <div class="metric"><span class="small">現在 B</span><b id="currentB">-</b></div>
+    <div class="metric"><span class="small">平均周期</span><b id="meanInterval">-</b></div>
+    <div class="metric"><span class="small">最大ジッター</span><b id="maxJitter">-</b></div>
+  </div>
+
+  <details>
+    <summary>高度な設定</summary>
+    <div style="height:12px"></div>
+    <div class="grid3">
+      <div class="field"><label>MODE1 / byte5</label><input id="modeA" type="text" value="0x0A"></div>
+      <div class="field"><label>MODE2 / byte9</label><input id="modeB" type="text" value="0x0B"></div>
+      <div class="field"><label>Payload B直接試験</label><button id="rawSpecial" disabled>現在値を1回送信</button></div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="small">通常利用では 0A / 0B のままにしてください。ここは解析用です。</div>
+  </details>
 </div>
 
-<div class="card exp">
-  <h2>Test 2: 再トリガー評価</h2>
-  <div class="box small">同じフレームを一定周期で再送します。終了時は「送信を止める」だけです。0A/0Bへ value=0 を送ればOFFになる、という仮定は採用しません。</div>
-  <div style="height:10px"></div>
-  <div class="grid3"><div class="field"><label>周期 ms</label><input id="intMs" type="number" min="100" max="5000" value="900"></div><div class="field"><label>評価時間 秒</label><input id="durSec" type="number" min="1" max="120" value="10"></div><div class="field"><label>終了後観察 ms</label><input id="graceMs" type="number" min="0" max="5000" value="1500"></div></div>
-  <h3>周期プリセット</h3>
-  <div class="grid4"><button data-i="1200">1200</button><button data-i="1000">1000</button><button data-i="900">900</button><button data-i="750">750</button><button data-i="500">500</button><button data-i="250">250</button></div>
-  <label class="check"><input id="wake" type="checkbox" checked>対応ブラウザでは画面スリープを抑止する</label>
-  <div class="grid2"><button id="repStart" class="expbtn" disabled>再トリガー開始</button><button id="repStop" class="warn" disabled>送信停止</button></div>
-  <div style="height:10px"></div>
-  <div class="grid3"><div class="metric"><small>送信回数</small><b id="txN">0</b></div><div class="metric"><small>実測平均周期</small><b id="meanI">-</b></div><div class="metric"><small>最大ジッター</small><b id="maxJ">-</b></div></div>
-</div>
-
-<div class="card exp">
-  <h2>Test 3: Payload B 探索</h2>
-  <div class="small">MODE1=0A / MODE2=0B と Payload A を固定し、最後の byte11 だけを変えて単発送信します。時間・モード・反復回数などに関係するかを確認します。</div>
-  <div style="height:10px"></div>
-  <div class="grid3"><div class="field"><label>開始 B</label><input id="bStart" type="number" min="0" max="255" value="0"></div><div class="field"><label>終了 B</label><input id="bEnd" type="number" min="0" max="255" value="8"></div><div class="field"><label>候補間隔 ms</label><input id="bGap" type="number" min="1500" max="10000" value="2500"></div></div>
-  <label class="check"><input id="sweepAck" type="checkbox">装着せずに観察することを確認し、自動探索を許可する</label>
-  <div class="grid2"><button id="sweepStart" class="expbtn" disabled>Payload B 探索開始</button><button id="sweepStop" class="warn" disabled>探索停止</button></div>
-  <div style="height:10px"></div><div class="row"><div><small>現在値</small><div id="curB" class="mono" style="font-size:22px">-</div></div><div><small>進捗</small><div id="progB" class="mono">待機中</div></div></div>
+<div class="card dangerCard">
+  <h2>停止</h2>
+  <div class="grid2">
+    <button id="stopKnown" class="danger" disabled>■ 既知3機能を停止</button>
+    <button id="panic" class="danger" disabled>■ 停止 + Bluetooth切断</button>
+  </div>
+  <div style="height:9px"></div>
+  <small>
+    特殊モードは「0A/0B value=0でOFF」とは扱っていません。
+    シーケンス停止時は再送を止め、設定に応じて既知3機能の停止フレームを送ります。
+  </small>
 </div>
 
 <div class="card">
-  <h2>観測記録</h2>
-  <div class="grid2"><div class="field"><label>赤LED</label><select id="led"><option>不明</option><option>変化なし</option><option>約1秒赤</option><option>連続赤</option><option>点滅</option></select></div><div class="field"><label>振動</label><select id="vib"><option>不明</option><option>変化なし</option><option>約1秒</option><option>連続</option><option>周期的</option></select></div></div>
-  <div style="height:10px"></div><textarea id="notes" placeholder="例: 900ms再送では赤LEDが途切れず、振動も連続した"></textarea>
-  <div style="height:10px"></div><button id="saveObs" style="width:100%">現在条件で観測を保存</button>
-  <h3>保存済み</h3><div id="obs" class="log">まだありません</div>
+  <div class="row">
+    <h2 style="margin:0">状態 / BLEログ</h2>
+    <button id="clearLog" style="padding:8px 10px;font-size:12px">消去</button>
+  </div>
+  <div id="log" class="log">待機中</div>
+
+  <div style="height:10px"></div>
+  <div class="grid2">
+    <button id="copyReport">レポートをコピー</button>
+    <button id="downloadReport">JSONを保存</button>
+  </div>
 </div>
 
 <div class="card">
-  <h2>停止・復旧</h2>
-  <div class="warnbox small">未知の0A/0BにはOFFを送らず、必要時は既知3機能 01/02、03/04、07/08 を0へ戻します。完全停止が必要ならBluetoothも切断します。</div>
-  <div style="height:10px"></div><div class="grid2"><button id="knownStop" class="danger" disabled>既知3機能を0へ</button><button id="panic" class="danger" disabled>既知停止 + Bluetooth切断</button></div>
+  <h2>現在の解析根拠</h2>
+  <div class="small">
+    公開実装で確認されている既知系統は、振動 01/02、微弱電流 03/04、吸引 07/08 です。
+    v4の 0A/0B 解釈は、この実機で得られた観測結果に基づく暫定実装です。
+    機種やファームウェア差で挙動が異なる可能性があります。
+  </div>
 </div>
-
-<div class="card">
-  <div class="row"><h2>BLEログ</h2><button id="clear">消去</button></div><div id="log" class="log">待機中</div>
-  <div style="height:10px"></div><div class="grid2"><button id="copy">評価レポートをコピー</button><button id="download">JSONを保存</button></div>
-</div>
-
-<div class="card"><h2>根拠</h2><div class="small">公開OSSでは Service EE01、Write EE03、Notify EE02、および12バイト制御フレームが確認されています。既知通常機能は 01/02、03/04、07/08 です。0A/0Bは公開解析にはないため、本ページでは未知コマンドとして評価します。<br><br><a href="https://github.com/51enuxu/sosexy-ble-control" target="_blank">51enuxu/sosexy-ble-control</a><br><a href="https://github.com/Lumenocturne/bobo-bridge" target="_blank">Lumenocturne/bobo-bridge</a></div></div>
+</main>
 
 <script>
 'use strict';
-const SVC='0000ee01-0000-1000-8000-00805f9b34fb', WR='0000ee03-0000-1000-8000-00805f9b34fb', NT='0000ee02-0000-1000-8000-00805f9b34fb';
-const INIT=new Uint8Array([1,1,0,1,0,0xC8,0x11,1]);
-let dev=null,wch=null,nch=null,q=Promise.resolve(),shotT=null,shotTick=null,shots=[],repAbort=false,repRun=false,repTimes=[],wl=null,sweepAbort=false,sweepRun=false,observations=[];
-const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms)), clamp=(n,a,b)=>Math.max(a,Math.min(b,Number(n)||0));
-function log(s){$('log').textContent=`[${new Date().toLocaleTimeString()}] ${s}\n`+$('log').textContent}
-function hx(a){return [...a].map(x=>x.toString(16).padStart(2,'0')).join(' ')}
-function byte(s){s=String(s).trim();let n;if(/^0x[0-9a-f]+$/i.test(s))n=parseInt(s.slice(2),16);else if(/^[0-9]+$/.test(s))n=parseInt(s,10);else if(/^[0-9a-f]+$/i.test(s))n=parseInt(s,16);else throw Error('不正な値: '+s);if(n<0||n>255)throw Error('0x00〜0xFFで指定');return n}
-function cfg(){return{a:byte($('modeA').value),x:clamp($('payloadA').value,0,255)|0,b:byte($('modeB').value),y:clamp($('payloadB').value,0,255)|0}}
-function frame(c){return new Uint8Array([1,1,0,2,0,c.a,0x11,c.x,0,c.b,0x11,c.y])}
-function preview(){try{$('preview').textContent='FRAME: '+hx(frame(cfg()))}catch(e){$('preview').textContent=e.message}}
-function connected(on){$('status').textContent=on?'接続済み: '+(dev?.name||'SOSEXY'):'未接続';$('dot').classList.toggle('on',on);['shotStart','shotEnd','repStart','repStop','knownStop','panic'].forEach(id=>$(id).disabled=!on);sweepButtons();$('connect').textContent=on?'再接続':'Bluetooth 接続'}
-function sweepButtons(){$('sweepStart').disabled=!(dev?.gatt?.connected&&$('sweepAck').checked)||sweepRun;$('sweepStop').disabled=!dev?.gatt?.connected||!sweepRun}
-async function raw(b){if(!wch||!dev?.gatt?.connected)throw Error('BLE未接続');try{if(wch.writeValueWithResponse)await wch.writeValueWithResponse(b);else await wch.writeValue(b)}catch(e){if(wch.writeValueWithoutResponse)await wch.writeValueWithoutResponse(b);else throw e}}
-function write(b,label){let c=new Uint8Array(b);q=q.catch(()=>{}).then(async()=>{await raw(c);log(label+': '+hx(c))});return q}
-async function connectBLE(){if(!navigator.bluetooth)throw Error('Web Bluetooth非対応');if(dev?.gatt?.connected){try{dev.gatt.disconnect()}catch(_){ }await sleep(200)}dev=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'SOSEXY'}],optionalServices:[SVC]});dev.addEventListener('gattserverdisconnected',()=>{wch=null;nch=null;repAbort=true;sweepAbort=true;connected(false);log('BLE切断')});let g=await dev.gatt.connect(),s=await g.getPrimaryService(SVC);wch=await s.getCharacteristic(WR);try{nch=await s.getCharacteristic(NT);nch.addEventListener('characteristicvaluechanged',e=>{let v=new Uint8Array(e.target.value.buffer,e.target.value.byteOffset,e.target.value.byteLength);log('NOTIFY: '+hx(v))});await nch.startNotifications();log('NOTIFY開始')}catch(e){log('NOTIFY省略: '+e.message)}try{await raw(INIT);log('INIT: '+hx(INIT))}catch(e){log('INIT応答なし: '+e.message)}connected(true);log('接続完了')}
-async function sendCurrent(label){let c=cfg();await write(frame(c),label);return c}
-function shotStats(){let n=shots.length;$('shotN').textContent=n;if(!n){$('shotLast').textContent=$('shotAvg').textContent='-';return}let last=shots[n-1],avg=shots.reduce((a,b)=>a+b,0)/n;$('shotLast').textContent=(last/1000).toFixed(3)+' s';$('shotAvg').textContent=(avg/1000).toFixed(3)+' s'}
-async function shot(){await sendCurrent('SINGLE');shotT=performance.now();clearInterval(shotTick);shotTick=setInterval(()=>{$('shotClock').textContent=((performance.now()-shotT)/1000).toFixed(3)+' s'},20);log('ワンショット計測開始')}
-function shotEnd(){if(shotT==null)return;let d=performance.now()-shotT;shots.push(d);shotT=null;clearInterval(shotTick);$('shotClock').textContent=(d/1000).toFixed(3)+' s';shotStats();log('終了観測 '+d.toFixed(1)+'ms')}
-async function wake(){if(!$('wake').checked||!navigator.wakeLock)return;try{wl=await navigator.wakeLock.request('screen')}catch(e){log('WakeLock不可: '+e.message)}}async function unwake(){try{if(wl)await wl.release()}catch(_){ }wl=null}
-function repStats(target){$('txN').textContent=repTimes.length;if(repTimes.length<2){$('meanI').textContent=$('maxJ').textContent='-';return}let d=[];for(let i=1;i<repTimes.length;i++)d.push(repTimes[i]-repTimes[i-1]);let m=d.reduce((a,b)=>a+b,0)/d.length,j=Math.max(...d.map(x=>Math.abs(x-target)));$('meanI').textContent=m.toFixed(1)+' ms';$('maxJ').textContent=j.toFixed(1)+' ms'}
-async function repeatRun(){if(repRun)return;let iv=clamp($('intMs').value,100,5000),dur=clamp($('durSec').value,1,120)*1000,gr=clamp($('graceMs').value,0,5000);repRun=true;repAbort=false;repTimes=[];$('repStart').disabled=true;await wake();let start=performance.now(),n=0;try{while(!repAbort){let target=start+n*iv,now=performance.now();if(now-start>=dur)break;if(now<target)await sleep(target-now);if(repAbort)break;await sendCurrent('RETRIGGER #'+(n+1));repTimes.push(performance.now());repStats(iv);n++}log(`再トリガー終了 ${n}回 target=${iv}ms`);if(!repAbort&&gr){log(`0A/0Bには停止送信せず ${gr}ms 観察`);await sleep(gr)}}finally{repRun=false;$('repStart').disabled=!dev?.gatt?.connected;await unwake()}}
-function repeatStop(){repAbort=true;log('再トリガー送信停止')}
-async function sweep(){if(sweepRun||!$('sweepAck').checked)return;let s=clamp($('bStart').value,0,255)|0,e=clamp($('bEnd').value,0,255)|0,g=clamp($('bGap').value,1500,10000);if(e<s)[s,e]=[e,s];let old=$('payloadB').value;sweepRun=true;sweepAbort=false;sweepButtons();try{let total=e-s+1,i=0;for(let y=s;y<=e;y++){if(sweepAbort)break;i++;$('payloadB').value=y;preview();$('curB').textContent=`${y} / 0x${y.toString(16).toUpperCase().padStart(2,'0')}`;$('progB').textContent=`${i}/${total}`;await sendCurrent('PAYLOAD-B='+y);let until=performance.now()+g;while(!sweepAbort&&performance.now()<until)await sleep(Math.min(100,until-performance.now()))}}finally{$('payloadB').value=old;preview();sweepRun=false;sweepButtons();$('progB').textContent=sweepAbort?'停止':'完了';log('Payload B探索終了')}}function sweepStop(){sweepAbort=true;log('Payload B探索停止要求')}
-async function knownStop(){repAbort=true;sweepAbort=true;let fs=[[0x01,0x02,'vibration'],[0x03,0x04,'electric'],[0x07,0x08,'suction']];for(let [a,b,n] of fs)await write(new Uint8Array([1,1,0,2,0,a,0x11,0,0,b,0x11,1]),'KNOWN STOP '+n);log('既知3機能を0へ')}
-async function panic(){try{await knownStop()}catch(_){ }try{if(dev?.gatt?.connected)dev.gatt.disconnect()}catch(_){ }connected(false);log('既知停止 + Bluetooth切断')}
-function saveObs(){let c=cfg(),r={time:new Date().toISOString(),frame:hx(frame(c)),config:c,interval_ms:+$('intMs').value,duration_sec:+$('durSec').value,led:$('led').value,vibration:$('vib').value,notes:$('notes').value.trim(),last_manual_ms:shots.length?shots[shots.length-1]:null};observations.push(r);$('obs').textContent=observations.map((x,i)=>`${i+1}. ${x.time}\n   frame=${x.frame}\n   LED=${x.led}, 振動=${x.vibration}, interval=${x.interval_ms}ms\n   ${x.notes||'(メモなし)'}`).join('\n\n');log('観測保存')}
-function report(){return{app:'FUNF / SOSEXY Protocol Evaluator v3',generated:new Date().toISOString(),hypothesis:'0x0A/0x0B behaves as an approximately 1-second one-shot on the tested device; Payload A 0 and 1 both triggered it.',current_frame:(()=>{try{return hx(frame(cfg()))}catch(_){return null}})(),shot_durations_ms:shots,retrigger_send_times_ms:repTimes,observations,ble_log:$('log').textContent}}
-async function copyReport(){try{await navigator.clipboard.writeText(JSON.stringify(report(),null,2));log('レポートをコピー')}catch(e){log('コピー失敗: '+e.message)}}
-function download(){let u=URL.createObjectURL(new Blob([JSON.stringify(report(),null,2)],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='sosexy-eval-v3-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
-$('connect').onclick=()=>connectBLE().catch(e=>{connected(false);log('接続失敗: '+e.message);alert(e.message)});['modeA','payloadA','modeB','payloadB'].forEach(id=>$(id).oninput=preview);document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{let [x,y]=b.dataset.p.split(',');$('payloadA').value=x;$('payloadB').value=y;preview()});document.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{$('intMs').value=b.dataset.i});$('shotStart').onclick=()=>shot().catch(e=>log('送信失敗: '+e.message));$('shotEnd').onclick=shotEnd;$('repStart').onclick=()=>repeatRun().catch(e=>{repRun=false;log('再トリガー失敗: '+e.message)});$('repStop').onclick=repeatStop;$('sweepAck').onchange=sweepButtons;$('sweepStart').onclick=()=>sweep().catch(e=>{sweepRun=false;sweepButtons();log('探索失敗: '+e.message)});$('sweepStop').onclick=sweepStop;$('saveObs').onclick=saveObs;$('knownStop').onclick=()=>knownStop().catch(e=>log('停止失敗: '+e.message));$('panic').onclick=()=>panic().catch(e=>log('切断失敗: '+e.message));$('clear').onclick=()=>{$('log').textContent=''};$('copy').onclick=copyReport;$('download').onclick=download;document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'&&(repRun||sweepRun))log('警告: バックグラウンド化。タイマー遅延の可能性')});window.addEventListener('pagehide',()=>{repAbort=true;sweepAbort=true;unwake()});preview();shotStats();connected(false);sweepButtons();
+
+const SERVICE_UUID = '0000ee01-0000-1000-8000-00805f9b34fb';
+const WRITE_UUID   = '0000ee03-0000-1000-8000-00805f9b34fb';
+const NOTIFY_UUID  = '0000ee02-0000-1000-8000-00805f9b34fb';
+const INIT = new Uint8Array([0x01,0x01,0x00,0x01,0x00,0xC8,0x11,0x01]);
+
+const KNOWN = {
+  vibration:[0x01,0x02],
+  electric:[0x03,0x04],
+  suction:[0x07,0x08]
+};
+
+let device=null;
+let writeChar=null;
+let notifyChar=null;
+let writeQueue=Promise.resolve();
+
+const normalState={suction:0,vibration:0,electric:0};
+let normalKeepAliveTimer=null;
+
+let specialAbort=false;
+let specialRunning=false;
+let specialTimes=[];
+let specialTxCount=0;
+let specialEndsAt=null;
+let countdownTimer=null;
+let wakeLock=null;
+
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,Number(n)||0));
+
+function log(msg){
+  const t=new Date().toLocaleTimeString();
+  $('log').textContent=`[${t}] ${msg}\n`+$('log').textContent;
+}
+function bytesHex(bytes){
+  return [...bytes].map(x=>x.toString(16).padStart(2,'0')).join(' ');
+}
+function parseByte(text){
+  const s=String(text).trim();
+  let n;
+  if(/^0x[0-9a-f]+$/i.test(s)) n=parseInt(s.slice(2),16);
+  else if(/^[0-9]+$/.test(s)) n=parseInt(s,10);
+  else if(/^[0-9a-f]+$/i.test(s)) n=parseInt(s,16);
+  else throw new Error(`不正な値: ${text}`);
+  if(!Number.isInteger(n)||n<0||n>255) throw new Error(`0x00〜0xFFで指定してください: ${text}`);
+  return n;
+}
+function normalFrame(a,b,level){
+  level=clamp(level,0,100)|0;
+  return new Uint8Array([1,1,0,2,0,a,0x11,level,0,b,0x11,1]);
+}
+function specialConfig(bOverride=null){
+  return {
+    modeA:parseByte($('modeA').value),
+    payloadA:clamp($('payloadA').value,0,255)|0,
+    modeB:parseByte($('modeB').value),
+    payloadB:bOverride===null?(clamp($('payloadB').value,0,255)|0):(bOverride&0xff)
+  };
+}
+function specialFrame(cfg){
+  return new Uint8Array([
+    1,1,0,2,0,
+    cfg.modeA,0x11,cfg.payloadA,
+    0,cfg.modeB,0x11,cfg.payloadB
+  ]);
+}
+function updateSpecialPreview(){
+  try{
+    $('specialFrame').textContent='FRAME: '+bytesHex(specialFrame(specialConfig()));
+  }catch(e){
+    $('specialFrame').textContent='入力エラー: '+e.message;
+  }
+}
+function setConnected(on){
+  $('status').textContent=on?`接続済み: ${device?.name||'SOSEXY'}`:'未接続';
+  $('dot').classList.toggle('on',on);
+  [
+    'suction','vibration','electric','singleSpecial','specialStart',
+    'specialStop','rawSpecial','stopKnown','panic'
+  ].forEach(id=>$(id).disabled=!on);
+  $('connect').textContent=on?'再接続':'Bluetooth 接続';
+}
+
+async function rawWrite(bytes){
+  if(!writeChar||!device?.gatt?.connected) throw new Error('BLE未接続');
+  try{
+    if(typeof writeChar.writeValueWithResponse==='function'){
+      await writeChar.writeValueWithResponse(bytes);
+    }else{
+      await writeChar.writeValue(bytes);
+    }
+  }catch(e){
+    if(typeof writeChar.writeValueWithoutResponse==='function'){
+      await writeChar.writeValueWithoutResponse(bytes);
+    }else{
+      throw e;
+    }
+  }
+}
+function queuedWrite(bytes,label='WRITE'){
+  const copy=new Uint8Array(bytes);
+  writeQueue=writeQueue.catch(()=>{}).then(async()=>{
+    await rawWrite(copy);
+    log(`${label}: ${bytesHex(copy)}`);
+  });
+  return writeQueue;
+}
+
+async function connectBLE(){
+  if(!navigator.bluetooth){
+    throw new Error('Web Bluetoothが利用できません。iPhoneではBluefy等でHTTPSページを開いてください。');
+  }
+  if(device?.gatt?.connected){
+    try{device.gatt.disconnect();}catch(_){}
+    await sleep(250);
+  }
+  device=await navigator.bluetooth.requestDevice({
+    filters:[{namePrefix:'SOSEXY'}],
+    optionalServices:[SERVICE_UUID]
+  });
+  device.addEventListener('gattserverdisconnected',()=>{
+    writeChar=null;
+    notifyChar=null;
+    specialAbort=true;
+    stopNormalKeepAlive();
+    stopCountdown();
+    setConnected(false);
+    log('BLE切断');
+  });
+
+  const server=await device.gatt.connect();
+  const service=await server.getPrimaryService(SERVICE_UUID);
+  writeChar=await service.getCharacteristic(WRITE_UUID);
+
+  try{
+    notifyChar=await service.getCharacteristic(NOTIFY_UUID);
+    notifyChar.addEventListener('characteristicvaluechanged',e=>{
+      const v=new Uint8Array(e.target.value.buffer,e.target.value.byteOffset,e.target.value.byteLength);
+      log('NOTIFY: '+bytesHex(v));
+    });
+    await notifyChar.startNotifications();
+    log('NOTIFY開始');
+  }catch(e){
+    log('NOTIFY開始を省略: '+e.message);
+  }
+
+  try{
+    await rawWrite(INIT);
+    log('INIT: '+bytesHex(INIT));
+  }catch(e){
+    log('INIT応答なし（継続）: '+e.message);
+  }
+
+  setConnected(true);
+  refreshNormalKeepAlive();
+  log(`接続完了: ${device.name||'SOSEXY'}`);
+}
+
+async function stopSpecial(sendEndBehavior=false){
+  specialAbort=true;
+  specialRunning=false;
+  stopCountdown();
+  await releaseWakeLock();
+
+  if(sendEndBehavior && device?.gatt?.connected){
+    const behavior=$('endBehavior').value;
+    if(behavior==='known-stop'){
+      await knownStop();
+    }else if(behavior==='disconnect'){
+      await panicDisconnect();
+    }else{
+      log('特殊シーケンス終了: 再送停止のみ');
+    }
+  }
+  $('specialStart').disabled=!device?.gatt?.connected;
+}
+
+async function setNormal(kind,level){
+  if(specialRunning){
+    await stopSpecial(false);
+    log('通常操作のため特殊シーケンスを停止');
+  }
+  const [a,b]=KNOWN[kind];
+  level=clamp(level,0,100)|0;
+  normalState[kind]=level;
+  $(kind+'Value').textContent=level;
+  await queuedWrite(normalFrame(a,b,level),`${kind} ${level}`);
+  refreshNormalKeepAlive();
+}
+
+function bindSlider(kind){
+  const el=$(kind);
+  let timer=null;
+  el.addEventListener('input',()=>{
+    const v=Number(el.value);
+    $(kind+'Value').textContent=v;
+    clearTimeout(timer);
+    timer=setTimeout(()=>setNormal(kind,v).catch(e=>log(`送信失敗: ${e.message}`)),70);
+  });
+  el.addEventListener('change',()=>{
+    clearTimeout(timer);
+    setNormal(kind,Number(el.value)).catch(e=>log(`送信失敗: ${e.message}`));
+  });
+}
+
+function stopNormalKeepAlive(){
+  if(normalKeepAliveTimer){
+    clearInterval(normalKeepAliveTimer);
+    normalKeepAliveTimer=null;
+  }
+}
+function refreshNormalKeepAlive(){
+  stopNormalKeepAlive();
+  if(!$('normalKeepAlive').checked||!device?.gatt?.connected||specialRunning) return;
+  if(!Object.values(normalState).some(v=>v>0)) return;
+
+  normalKeepAliveTimer=setInterval(async()=>{
+    if(!device?.gatt?.connected||specialRunning) return;
+    for(const [kind,level] of Object.entries(normalState)){
+      if(level>0){
+        const [a,b]=KNOWN[kind];
+        try{await queuedWrite(normalFrame(a,b,level),`KEEPALIVE ${kind} ${level}`);}
+        catch(e){log(`KEEPALIVE失敗: ${e.message}`);}
+      }
+    }
+  },25000);
+}
+
+async function knownStop(){
+  const order=['suction','vibration','electric'];
+  for(const kind of order){
+    const [a,b]=KNOWN[kind];
+    normalState[kind]=0;
+    $(kind).value=0;
+    $(kind+'Value').textContent='0';
+    try{await queuedWrite(normalFrame(a,b,0),`STOP ${kind}`);}
+    catch(e){log(`STOP ${kind}失敗: ${e.message}`);}
+  }
+  stopNormalKeepAlive();
+  log('既知3機能へ停止送信');
+}
+
+async function panicDisconnect(){
+  specialAbort=true;
+  stopCountdown();
+  try{await knownStop();}catch(_){}
+  try{if(device?.gatt?.connected)device.gatt.disconnect();}catch(_){}
+  setConnected(false);
+  log('停止送信後にBluetooth切断');
+}
+
+async function sendSpecial(bOverride=null,label='SPECIAL'){
+  const cfg=specialConfig(bOverride);
+  await queuedWrite(specialFrame(cfg),`${label} A=${cfg.payloadA} B=${cfg.payloadB}`);
+  return cfg;
+}
+
+function parseSequence(){
+  const raw=$('sequence').value.trim();
+  if(!raw) throw new Error('シーケンスが空です');
+  const parts=raw.split(/[\s,;>→]+/).filter(Boolean);
+  const arr=parts.map(tok=>{
+    const v=parseByte(tok);
+    return v;
+  });
+  if(!arr.length) throw new Error('シーケンスが空です');
+  return arr;
+}
+
+function totalSeconds(){
+  const h=clamp($('hours').value,0,23)|0;
+  const m=clamp($('minutes').value,0,59)|0;
+  const s=clamp($('seconds').value,0,59)|0;
+  return h*3600+m*60+s;
+}
+function formatTime(sec){
+  sec=Math.max(0,Math.ceil(sec));
+  const h=Math.floor(sec/3600);
+  const m=Math.floor((sec%3600)/60);
+  const s=sec%60;
+  return [h,m,s].map(v=>String(v).padStart(2,'0')).join(':');
+}
+function updateCountdownFromInputs(){
+  if(specialEndsAt===null) $('countdown').textContent=formatTime(totalSeconds());
+}
+function stopCountdown(){
+  if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;}
+  specialEndsAt=null;
+  updateCountdownFromInputs();
+}
+function startCountdown(durationMs){
+  specialEndsAt=Date.now()+durationMs;
+  $('countdown').textContent=formatTime(durationMs/1000);
+  if(countdownTimer) clearInterval(countdownTimer);
+  countdownTimer=setInterval(()=>{
+    if(specialEndsAt===null) return;
+    const left=Math.max(0,(specialEndsAt-Date.now())/1000);
+    $('countdown').textContent=formatTime(left);
+  },250);
+}
+
+async function acquireWakeLock(){
+  if(!$('useWakeLock').checked||!('wakeLock' in navigator)) return;
+  try{
+    wakeLock=await navigator.wakeLock.request('screen');
+    log('Wake Lock取得');
+  }catch(e){
+    log('Wake Lock利用不可: '+e.message);
+  }
+}
+async function releaseWakeLock(){
+  try{if(wakeLock)await wakeLock.release();}catch(_){}
+  wakeLock=null;
+}
+
+function updateTimingMetrics(target){
+  $('txCount').textContent=String(specialTxCount);
+  if(specialTimes.length<2){
+    $('meanInterval').textContent='-';
+    $('maxJitter').textContent='-';
+    return;
+  }
+  const diffs=[];
+  for(let i=1;i<specialTimes.length;i++) diffs.push(specialTimes[i]-specialTimes[i-1]);
+  const mean=diffs.reduce((a,b)=>a+b,0)/diffs.length;
+  const maxJ=Math.max(...diffs.map(d=>Math.abs(d-target)));
+  $('meanInterval').textContent=mean.toFixed(1)+' ms';
+  $('maxJitter').textContent=maxJ.toFixed(1)+' ms';
+}
+
+async function runSpecialSequence(){
+  if(specialRunning) return;
+
+  const seq=parseSequence();
+  const interval=clamp($('specialInterval').value,150,5000);
+  const durationSec=totalSeconds();
+  const mode=$('sequenceMode').value;
+
+  if(mode!=='single'&&durationSec<=0) throw new Error('継続時間を1秒以上にしてください');
+
+  await knownStop();
+  stopNormalKeepAlive();
+
+  specialAbort=false;
+  specialRunning=true;
+  specialTimes=[];
+  specialTxCount=0;
+  $('specialStart').disabled=true;
+  $('currentB').textContent='-';
+  $('txCount').textContent='0';
+  $('meanInterval').textContent='-';
+  $('maxJitter').textContent='-';
+  await acquireWakeLock();
+
+  const started=performance.now();
+  const durationMs=mode==='single'
+    ? Math.max(interval*seq.length,1000)
+    : durationSec*1000;
+
+  startCountdown(durationMs);
+
+  let i=0;
+  try{
+    while(!specialAbort){
+      const elapsed=performance.now()-started;
+      if(mode!=='single'&&elapsed>=durationMs) break;
+      if(mode==='single'&&i>=seq.length) break;
+
+      let b;
+      if(mode==='random'){
+        b=seq[Math.floor(Math.random()*seq.length)];
+      }else{
+        b=seq[i%seq.length];
+      }
+
+      const target=started+i*interval;
+      const now=performance.now();
+      if(now<target) await sleep(target-now);
+      if(specialAbort) break;
+
+      if(mode!=='single' && performance.now()-started>=durationMs) break;
+
+      await sendSpecial(b,`SEQ #${i+1}`);
+      specialTimes.push(performance.now());
+      specialTxCount++;
+      $('currentB').textContent=String(b);
+      updateTimingMetrics(interval);
+      i++;
+    }
+  }finally{
+    specialRunning=false;
+    stopCountdown();
+    await releaseWakeLock();
+    $('specialStart').disabled=!device?.gatt?.connected;
+
+    if(!specialAbort){
+      log('特殊シーケンス規定時間終了');
+      const behavior=$('endBehavior').value;
+      if(behavior==='known-stop') await knownStop();
+      else if(behavior==='disconnect') await panicDisconnect();
+      else log('特殊シーケンス終了: 再送停止のみ');
+    }else{
+      log('特殊シーケンス手動停止');
+    }
+    refreshNormalKeepAlive();
+  }
+}
+
+function addSequenceValue(v){
+  const raw=$('sequence').value.trim();
+  $('sequence').value=raw?`${raw},${v}`:String(v);
+  saveSettings();
+}
+function setPatternB(v){
+  $('payloadB').value=String(v);
+  updateSpecialPreview();
+  saveSettings();
+}
+
+function saveSettings(){
+  try{
+    const data={
+      payloadA:$('payloadA').value,
+      payloadB:$('payloadB').value,
+      sequence:$('sequence').value,
+      interval:$('specialInterval').value,
+      seqMode:$('sequenceMode').value,
+      endBehavior:$('endBehavior').value,
+      hours:$('hours').value,
+      minutes:$('minutes').value,
+      seconds:$('seconds').value,
+      normalKeepAlive:$('normalKeepAlive').checked,
+      wakeLock:$('useWakeLock').checked
+    };
+    localStorage.setItem('sosexy-v4-settings',JSON.stringify(data));
+  }catch(_){}
+}
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem('sosexy-v4-settings');
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.payloadA!==undefined)$('payloadA').value=d.payloadA;
+    if(d.payloadB!==undefined)$('payloadB').value=d.payloadB;
+    if(d.sequence!==undefined)$('sequence').value=d.sequence;
+    if(d.interval!==undefined)$('specialInterval').value=d.interval;
+    if(d.seqMode!==undefined)$('sequenceMode').value=d.seqMode;
+    if(d.endBehavior!==undefined)$('endBehavior').value=d.endBehavior;
+    if(d.hours!==undefined)$('hours').value=d.hours;
+    if(d.minutes!==undefined)$('minutes').value=d.minutes;
+    if(d.seconds!==undefined)$('seconds').value=d.seconds;
+    if(d.normalKeepAlive!==undefined)$('normalKeepAlive').checked=!!d.normalKeepAlive;
+    if(d.wakeLock!==undefined)$('useWakeLock').checked=!!d.wakeLock;
+  }catch(_){}
+}
+
+function makeReport(){
+  return {
+    app:'FUNF / SOSEXY Controller v4',
+    generated:new Date().toISOString(),
+    device:device?.name||null,
+    connected:!!device?.gatt?.connected,
+    normal_state:{...normalState},
+    special:{
+      frame:(()=>{try{return bytesHex(specialFrame(specialConfig()));}catch(_){return null;}})(),
+      sequence:$('sequence').value,
+      interval_ms:Number($('specialInterval').value),
+      payloadA:Number($('payloadA').value),
+      modeA:$('modeA').value,
+      modeB:$('modeB').value,
+      sequence_mode:$('sequenceMode').value,
+      tx_count:specialTxCount,
+      send_times_ms:[...specialTimes]
+    },
+    observations_known:{
+      "A0_B1":"振動・約1秒",
+      "A1_B1":"振動・約1秒",
+      "A1_B2":"吸引・約1秒",
+      "A1_B3":"吸引・約1秒",
+      "A1_B6":"吸引・約1秒",
+      "A1_B7":"吸引・約1秒",
+      "A1_B8":"赤LED、アクチュエーター動作なし"
+    },
+    log:$('log').textContent
+  };
+}
+async function copyReport(){
+  const text=JSON.stringify(makeReport(),null,2);
+  try{
+    await navigator.clipboard.writeText(text);
+    log('レポートをコピー');
+  }catch(e){
+    log('コピー失敗: '+e.message);
+  }
+}
+function downloadReport(){
+  const blob=new Blob([JSON.stringify(makeReport(),null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`sosexy-v4-report-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+$('connect').addEventListener('click',async()=>{
+  try{await connectBLE();}
+  catch(e){
+    setConnected(false);
+    log('接続失敗: '+e.message);
+    alert('接続できませんでした。\n\n'+e.message);
+  }
+});
+
+['suction','vibration','electric'].forEach(bindSlider);
+
+$('normalKeepAlive').addEventListener('change',()=>{
+  saveSettings();
+  refreshNormalKeepAlive();
+});
+
+document.querySelectorAll('[data-b]').forEach(btn=>{
+  btn.addEventListener('click',()=>setPatternB(Number(btn.dataset.b)));
+});
+document.querySelectorAll('[data-add]').forEach(btn=>{
+  btn.addEventListener('click',()=>addSequenceValue(Number(btn.dataset.add)));
+});
+$('clearSequence').addEventListener('click',()=>{
+  $('sequence').value='';
+  saveSettings();
+});
+
+['payloadA','payloadB','modeA','modeB'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    updateSpecialPreview();
+    saveSettings();
+  });
+});
+['sequence','specialInterval','sequenceMode','endBehavior','hours','minutes','seconds','useWakeLock'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    updateCountdownFromInputs();
+    saveSettings();
+  });
+});
+
+$('singleSpecial').addEventListener('click',()=>sendSpecial(null,'ONE SHOT').catch(e=>log('送信失敗: '+e.message)));
+$('rawSpecial').addEventListener('click',()=>sendSpecial(null,'RAW SPECIAL').catch(e=>log('送信失敗: '+e.message)));
+
+$('specialStart').addEventListener('click',()=>runSpecialSequence().catch(e=>{
+  specialRunning=false;
+  stopCountdown();
+  releaseWakeLock().catch(()=>{});
+  $('specialStart').disabled=!device?.gatt?.connected;
+  log('シーケンス失敗: '+e.message);
+  alert(e.message);
+}));
+$('specialStop').addEventListener('click',async()=>{
+  specialAbort=true;
+  await sleep(50);
+  const behavior=$('endBehavior').value;
+  if(device?.gatt?.connected){
+    if(behavior==='known-stop') await knownStop();
+    else if(behavior==='disconnect') await panicDisconnect();
+  }
+});
+
+$('stopKnown').addEventListener('click',()=>knownStop().catch(e=>log('停止失敗: '+e.message)));
+$('panic').addEventListener('click',()=>panicDisconnect().catch(e=>log('緊急停止失敗: '+e.message)));
+$('clearLog').addEventListener('click',()=>$('log').textContent='');
+$('copyReport').addEventListener('click',copyReport);
+$('downloadReport').addEventListener('click',downloadReport);
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'&&specialRunning){
+    log('警告: ページがバックグラウンドになりました。iOSでタイマーが遅延する可能性があります。');
+  }
+});
+window.addEventListener('pagehide',()=>{
+  specialAbort=true;
+  stopNormalKeepAlive();
+  releaseWakeLock().catch(()=>{});
+});
+
+loadSettings();
+updateSpecialPreview();
+updateCountdownFromInputs();
+setConnected(false);
 </script>
-</main></body></html>
+</body>
+</html>
